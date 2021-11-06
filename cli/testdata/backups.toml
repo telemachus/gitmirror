@@ -1,0 +1,19 @@
+[[repos]]
+remote = "backup"
+dir = "/home/username/foo"
+
+[[repos]]
+remote = "backblaze"
+dir = "/Users/foo/bar"
+
+[[repos]]
+remote = "backup"
+dir = "/home/username/bar"
+
+[[repos]]
+remote = "rsync"
+dir = "foo/bar"
+
+[[repos]]
+remote = "backup"
+dir = "foo/bar/buzz"
