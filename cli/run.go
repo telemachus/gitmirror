@@ -5,7 +5,5 @@ func Run(args []string) int {
 	configFile, isDefault := app.ParseFlags(args)
 	wanted := app.Unmarshal(configFile, isDefault)
 	app.MirrorRepos(wanted)
-	app.DisplayInfo()
-	app.DisplayError()
 	return app.ExitValue
 }

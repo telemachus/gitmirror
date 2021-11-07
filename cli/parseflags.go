@@ -4,35 +4,38 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 )
 
 func (app *App) ParseFlags(args []string) (string, bool) {
-	if app.Err != nil {
+	if app.ShouldNoOp() {
 		return "", false
 	}
 
 	flags := flag.NewFlagSet("git-backup", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 
-	var helpWanted bool
-	var versionWanted bool
 	var configFile string
 	var isDefault bool
-	flags.BoolVar(&helpWanted, "help", false, "")
-	flags.BoolVar(&versionWanted, "version", false, "")
-	flags.StringVar(&configFile, "", "", "")
+	flags.BoolVar(&app.HelpWanted, "help", false, "")
+	flags.BoolVar(&app.VersionWanted, "version", false, "")
+	flags.StringVar(&configFile, "config", "", "")
 
-	app.Err = flags.Parse(args)
+	err := flags.Parse(args)
 	switch {
-	case helpWanted:
-		app.Info = appUsage
-	case versionWanted:
-		app.Info = fmt.Sprintf("%s: %s", appName, appVersion)
+	case app.HelpWanted:
+		app.HelpWanted = true
+		fmt.Println(appUsage)
+		return "", false
+	case app.VersionWanted:
+		app.VersionWanted = true
+		fmt.Printf("%s: %s\n", appName, appVersion)
+		return "", false
 	case configFile == "":
 		configFile = defaultConfig
 		isDefault = true
-	case app.Err != nil:
-		app.Err = fmt.Errorf("%w\n%s", app.Err, appUsage)
+	case err != nil:
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s", appName, err, appUsage)
 		app.ExitValue = exitFailure
 	}
 	return configFile, isDefault

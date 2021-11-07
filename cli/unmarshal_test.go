@@ -8,6 +8,7 @@ import (
 )
 
 const exitFailure = 1
+const exitSuccess = 0
 
 func makeRepos() []*cli.Repo {
 	backups := make([]*cli.Repo, 0, 5)
@@ -32,8 +33,8 @@ func TestUnmarshalSuccess(t *testing.T) {
 	expected := makeRepos()
 	app := &cli.App{}
 	actual := app.Unmarshal("testdata/backups.toml", false)
-	if app.Err != nil {
-		t.Fatal(app.Err)
+	if app.ExitValue != exitSuccess {
+		t.Fatal("app.ExitValue != exitSuccess")
 	}
 	if !reflect.DeepEqual(expected, actual.Repos) {
 		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
@@ -43,7 +44,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 func TestUnmarshalFailure(t *testing.T) {
 	app := &cli.App{}
 	app.Unmarshal("testdata/nope.toml", false)
-	if app.Err == nil {
+	if app.ExitValue == exitFailure {
 		t.Errorf("error is nil but we tried to unmarshal a nonexistent file")
 	}
 	if app.ExitValue != exitFailure {
@@ -55,8 +56,8 @@ func TestUnmarshalReplace(t *testing.T) {
 	expected := makeRepos()
 	app := &cli.App{}
 	actual := app.Unmarshal("testdata/backups.toml", false)
-	if app.Err != nil {
-		t.Fatal(app.Err)
+	if app.ExitValue != exitSuccess {
+		t.Fatal("app.ExitValue != exitSuccess")
 	}
 	if !reflect.DeepEqual(expected, actual.Repos) {
 		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
