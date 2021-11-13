@@ -23,20 +23,17 @@ func (app *App) ParseFlags(args []string) (string, bool) {
 
 	err := flags.Parse(args)
 	switch {
+	// This must precede all other checks.
+	case err != nil:
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		app.ExitValue = exitFailure
 	case app.HelpWanted:
-		app.HelpWanted = true
 		fmt.Println(appUsage)
-		return "", false
 	case app.VersionWanted:
-		app.VersionWanted = true
 		fmt.Printf("%s: %s\n", appName, appVersion)
-		return "", false
 	case configFile == "":
 		configFile = defaultConfig
 		isDefault = true
-	case err != nil:
-		fmt.Fprintf(os.Stderr, "%s: %s\n%s", appName, err, appUsage)
-		app.ExitValue = exitFailure
 	}
 	return configFile, isDefault
 }
