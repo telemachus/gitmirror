@@ -12,19 +12,22 @@ staticcheck: errcheck
 vet: staticcheck
 	go vet ./...
 
-build: vet
+lint: vet
+	golint ./...
+
+build: lint
 	go build .
 
 install: build
 	go install .
 
 test:
-	go test -shuffle on ./...
+	go test -race -shuffle on ./...
 
 testv:
-	go test -shuffle on -v ./...
+	go test -race -shuffle on -v ./...
 
 clean:
-	$(RM) git-backup
+	$(RM) gitmirror
 
 .PHONY: fmt errcheck staticcheck vet build install test testv clean

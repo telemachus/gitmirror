@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/user"
@@ -10,17 +12,48 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+// App stores information about the application's state.
 type App struct {
 	ExitValue     int
 	HelpWanted    bool
 	VersionWanted bool
 }
 
+// ParseFlags handles flags and options in my finicky way.
+func (app *App) ParseFlags(args []string) (string, bool) {
+	flags := flag.NewFlagSet("git-backup", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+
+	var configFile string
+	var isDefault bool
+	flags.BoolVar(&app.HelpWanted, "help", false, "")
+	flags.BoolVar(&app.VersionWanted, "version", false, "")
+	flags.StringVar(&configFile, "config", "", "")
+
+	err := flags.Parse(args)
+	switch {
+	// This must precede all other checks.
+	case err != nil:
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		app.ExitValue = exitFailure
+	case app.HelpWanted:
+		fmt.Println(appUsage)
+	case app.VersionWanted:
+		fmt.Printf("%s: %s\n", appName, appVersion)
+	case configFile == "":
+		configFile = defaultConfig
+		isDefault = true
+	}
+	return configFile, isDefault
+}
+
+// Repo stores information about a git repository.
 type Repo struct {
 	Dir    string
 	Remote string
 }
 
+// Wanted stores a slice of Repo structs.
 type Wanted struct {
 	Repos []*Repo
 }
@@ -30,12 +63,14 @@ type repoResult struct {
 	res string
 }
 
-func (app *App) ShouldNoOp() bool {
+// NoOp determines whether an App should bail out.
+func (app *App) NoOp() bool {
 	return app.ExitValue != exitSuccess || app.HelpWanted || app.VersionWanted
 }
 
+// Unmarshal reads a configuration file and returns a Wanted struct.
 func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
-	if app.ShouldNoOp() {
+	if app.NoOp() {
 		return nil
 	}
 
@@ -66,8 +101,9 @@ func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
 	return &wanted
 }
 
+// MirrorRepos runs git push --mirror on a group of repositories.
 func (app *App) MirrorRepos(wanted *Wanted) {
-	if app.ShouldNoOp() || len(wanted.Repos) == 0 {
+	if app.NoOp() || len(wanted.Repos) == 0 {
 		return
 	}
 

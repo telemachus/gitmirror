@@ -44,11 +44,8 @@ func TestUnmarshalSuccess(t *testing.T) {
 func TestUnmarshalFailure(t *testing.T) {
 	app := &cli.App{}
 	app.Unmarshal("testdata/nope.toml", false)
-	if app.ExitValue == exitFailure {
-		t.Errorf("error is nil but we tried to unmarshal a nonexistent file")
-	}
 	if app.ExitValue != exitFailure {
-		t.Errorf("expected %d; actual %v", exitFailure, app.ExitValue)
+		t.Errorf("expected exit status: %d; actual exit status: %d", exitFailure, app.ExitValue)
 	}
 }
 
