@@ -3,7 +3,7 @@ package cli
 
 const (
 	appName    = "gitmirror"
-	appVersion = "v0.0.2"
+	appVersion = "v0.0.3"
 	appUsage   = `usage: gitmirror [-config FILENAME]
 
 options:

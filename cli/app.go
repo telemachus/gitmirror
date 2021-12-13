@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/user"
 	"strings"
+	"sync"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -58,11 +59,6 @@ type Wanted struct {
 	Repos []*Repo
 }
 
-type repoResult struct {
-	err error
-	res string
-}
-
 // NoOp determines whether an App should bail out.
 func (app *App) NoOp() bool {
 	return app.ExitValue != exitSuccess || app.HelpWanted || app.VersionWanted
@@ -107,32 +103,30 @@ func (app *App) MirrorRepos(wanted *Wanted) {
 		return
 	}
 
-	outcomes := make(chan repoResult)
+	var wg sync.WaitGroup
+	wg.Add(len(wanted.Repos))
 	for _, repo := range wanted.Repos {
 		if repo == nil || repo.Dir == "" {
+			wg.Done()
 			continue
 		}
 		go func(r *Repo) {
-			args := []string{"push", "--mirror", r.Remote}
-			cmd := exec.Command("git", args...)
-			cmd.Dir = r.Dir
-			cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
-			err := cmd.Run()
-			if err != nil {
-				outcomes <- repoResult{err: fmt.Errorf("%s: problem with %s: %s", appName, cmdString, err)}
-				return
-			}
-			outcomes <- repoResult{res: fmt.Sprintf("%s: %s", appName, cmdString)}
+			updateRepo(r)
+			wg.Done()
 		}(repo)
 	}
+	wg.Wait()
+}
 
-	for range wanted.Repos {
-		r := <-outcomes
-		if r.err != nil {
-			fmt.Fprintln(os.Stderr, r.err)
-			app.ExitValue = exitFailure
-		} else {
-			fmt.Println(r.res)
-		}
+func updateRepo(r *Repo) {
+	args := []string{"push", "--mirror", r.Remote}
+	cmd := exec.Command("git", args...)
+	cmd.Dir = r.Dir
+	cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: problem with %s: %s\n", appName, cmdString, err)
+		return
 	}
+	fmt.Printf("%s: %s\n", appName, cmdString)
 }
