@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"slices"
 	"strings"
 	"sync"
 
@@ -102,13 +103,12 @@ func (app *App) MirrorRepos(wanted *Wanted) {
 	if app.NoOp() || len(wanted.Repos) == 0 {
 		return
 	}
-
+	wanted.Repos = slices.DeleteFunc(wanted.Repos, func(r *Repo) bool {
+		return r == nil || r.Dir == ""
+	})
 	var wg sync.WaitGroup
+	wg.Add(len(wanted.Repos))
 	for _, repo := range wanted.Repos {
-		if repo == nil || repo.Dir == "" {
-			continue
-		}
-		wg.Add(1)
 		go func(r *Repo) {
 			defer wg.Done()
 			updateRepo(r)
