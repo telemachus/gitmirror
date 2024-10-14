@@ -98,34 +98,46 @@ func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
 	return &wanted
 }
 
-// MirrorRepos runs git push --mirror on a group of repositories.
-func (app *App) MirrorRepos(wanted *Wanted) {
+// MirrorRepos runs git push --mirror on a group of repositories and returns
+// a slice of results.
+func (app *App) MirrorRepos(wanted *Wanted) []Publisher {
 	if app.NoOp() || len(wanted.Repos) == 0 {
-		return
+		return nil
 	}
 	wanted.Repos = slices.DeleteFunc(wanted.Repos, func(r *Repo) bool {
 		return r == nil || r.Dir == ""
 	})
 	var wg sync.WaitGroup
 	wg.Add(len(wanted.Repos))
-	for _, repo := range wanted.Repos {
-		go func(r *Repo) {
+	results := make([]Publisher, len(wanted.Repos))
+	for i, r := range wanted.Repos {
+		go func() {
 			defer wg.Done()
-			updateRepo(r)
-		}(repo)
+			res := updateRepo(r)
+			results[i] = res
+		}()
 	}
 	wg.Wait()
+	return results
 }
 
-func updateRepo(r *Repo) {
+func (app *App) DisplayResults(results []Publisher) {
+	if app.NoOp() || len(results) == 0 {
+		return
+	}
+	for _, r := range results {
+		r.Publish()
+	}
+}
+
+func updateRepo(r *Repo) Publisher {
 	args := []string{"push", "--mirror", r.Remote}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = r.Dir
 	cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: problem with %s: %s\n", appName, cmdString, err)
-		return
+		return Failure{msg: fmt.Sprintf("%s: problem with %s: %s", appName, cmdString, err)}
 	}
-	fmt.Printf("%s: %s\n", appName, cmdString)
+	return Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
 }

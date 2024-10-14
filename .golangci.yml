@@ -1,4 +1,6 @@
 linters-settings:
+  copyloopvar:
+    check-alias: true
   depguard:
       rules:
         main:
