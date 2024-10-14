@@ -1,3 +1,3 @@
 # gitmirror
 
-gitmirror makes it easier to backup git repositories.  Details  to come.
+gitmirror makes it easier to mirror git repositories.  Details  to come.
