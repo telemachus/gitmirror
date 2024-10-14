@@ -104,15 +104,14 @@ func (app *App) MirrorRepos(wanted *Wanted) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(wanted.Repos))
 	for _, repo := range wanted.Repos {
 		if repo == nil || repo.Dir == "" {
-			wg.Done()
 			continue
 		}
+		wg.Add(1)
 		go func(r *Repo) {
+			defer wg.Done()
 			updateRepo(r)
-			wg.Done()
 		}(repo)
 	}
 	wg.Wait()

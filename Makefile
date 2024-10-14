@@ -1,19 +1,11 @@
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := test
 
 fmt:
-	go fmt ./...
+	golangci-lint run --disable-all --no-config -Egofmt --fix
+	golangci-lint run --disable-all --no-config -Egofumpt --fix
 
-errcheck: fmt
-	errcheck ./...
-
-staticcheck: errcheck
-	staticcheck ./...
-
-vet: staticcheck
-	go vet ./...
-
-lint: vet
-	golint ./...
+lint: fmt
+	golangci-lint run
 
 build: lint
 	go build .
@@ -28,6 +20,6 @@ testv:
 	go test -race -shuffle on -v ./...
 
 clean:
-	$(RM) gitmirror
+	go clean -i -r -cache
 
-.PHONY: fmt errcheck staticcheck vet build install test testv clean
+.PHONY: fmt lint build install test testv clean

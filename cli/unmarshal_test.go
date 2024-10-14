@@ -1,23 +1,25 @@
 package cli_test
 
 import (
-	"reflect"
 	"testing"
 
-	"git.sr.ht/~telemachus/gitmirror/cli"
+	"github.com/google/go-cmp/cmp"
+	"github.com/telemachus/gitmirror/cli"
 )
 
-const exitFailure = 1
-const exitSuccess = 0
+const (
+	exitFailure = 1
+	exitSuccess = 0
+)
 
 func makeRepos() []*cli.Repo {
-	backups := make([]*cli.Repo, 0, 5)
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "/home/username/foo"})
-	backups = append(backups, &cli.Repo{Remote: "backblaze", Dir: "/Users/foo/bar"})
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "/home/username/bar"})
-	backups = append(backups, &cli.Repo{Remote: "rsync", Dir: "foo/bar"})
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "foo/bar/buzz"})
-	return backups
+	return []*cli.Repo{
+		{Remote: "backup", Dir: "/home/username/foo"},
+		{Remote: "backblaze", Dir: "/Users/foo/bar"},
+		{Remote: "backup", Dir: "/home/username/bar"},
+		{Remote: "rsync", Dir: "foo/bar"},
+		{Remote: "backup", Dir: "foo/bar/buzz"},
+	}
 }
 
 // TODO: Write a test method for toml files with $HOME replaced by the user’s
@@ -30,18 +32,20 @@ func makeRepos() []*cli.Repo {
 // }
 
 func TestUnmarshalSuccess(t *testing.T) {
+	t.Parallel()
 	expected := makeRepos()
 	app := &cli.App{}
 	actual := app.Unmarshal("testdata/backups.toml", false)
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
-	if !reflect.DeepEqual(expected, actual.Repos) {
-		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
+	if diff := cmp.Diff(expected, actual.Repos); diff != "" {
+		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
 
 func TestUnmarshalFailure(t *testing.T) {
+	t.Parallel()
 	app := &cli.App{}
 	app.Unmarshal("testdata/nope.toml", false)
 	if app.ExitValue != exitFailure {
@@ -50,13 +54,14 @@ func TestUnmarshalFailure(t *testing.T) {
 }
 
 func TestUnmarshalReplace(t *testing.T) {
+	t.Parallel()
 	expected := makeRepos()
 	app := &cli.App{}
 	actual := app.Unmarshal("testdata/backups.toml", false)
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
-	if !reflect.DeepEqual(expected, actual.Repos) {
-		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
+	if diff := cmp.Diff(expected, actual.Repos); diff != "" {
+		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
