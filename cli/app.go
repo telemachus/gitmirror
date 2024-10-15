@@ -97,9 +97,9 @@ func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
 	return &wanted
 }
 
-// MirrorRepos runs git push --mirror on a group of repositories and displays
-// the result of the mirror operation.
-func (app *App) MirrorRepos(wanted *Wanted) {
+// Mirror runs git push --mirror on a group of repositories and displays the
+// result of the mirror operation.
+func (app *App) Mirror(wanted *Wanted) {
 	if app.NoOp() || len(wanted.Repos) == 0 {
 		return
 	}
@@ -108,9 +108,7 @@ func (app *App) MirrorRepos(wanted *Wanted) {
 	})
 	ch := make(chan Publisher)
 	for _, repo := range wanted.Repos {
-		go func() {
-			updateRepo(repo, ch)
-		}()
+		go mirror(repo, ch)
 	}
 	for range wanted.Repos {
 		result := <-ch
@@ -118,14 +116,14 @@ func (app *App) MirrorRepos(wanted *Wanted) {
 	}
 }
 
-func updateRepo(repo *Repo, ch chan Publisher) {
+func mirror(repo *Repo, ch chan Publisher) {
 	args := []string{"push", "--mirror", repo.Remote}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = repo.Dir
 	cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
 	err := cmd.Run()
 	if err != nil {
-		ch <- Failure{msg: fmt.Sprintf("%s: problem with %s: %s", appName, cmdString, err)}
+		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", appName, cmdString, err)}
 	}
 	ch <- Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
 }

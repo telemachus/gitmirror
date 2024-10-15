@@ -20,6 +20,6 @@ func Run(args []string) int {
 	app := &App{ExitValue: exitSuccess}
 	configFile, isDefault := app.ParseFlags(args)
 	wanted := app.Unmarshal(configFile, isDefault)
-	app.MirrorRepos(wanted)
+	app.Mirror(wanted)
 	return app.ExitValue
 }
