@@ -9,7 +9,6 @@ import (
 	"os/user"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -98,46 +97,35 @@ func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
 	return &wanted
 }
 
-// MirrorRepos runs git push --mirror on a group of repositories and returns
-// a slice of results.
-func (app *App) MirrorRepos(wanted *Wanted) []Publisher {
+// MirrorRepos runs git push --mirror on a group of repositories and displays
+// the result of the mirror operation.
+func (app *App) MirrorRepos(wanted *Wanted) {
 	if app.NoOp() || len(wanted.Repos) == 0 {
-		return nil
-	}
-	wanted.Repos = slices.DeleteFunc(wanted.Repos, func(r *Repo) bool {
-		return r == nil || r.Dir == ""
-	})
-	var wg sync.WaitGroup
-	wg.Add(len(wanted.Repos))
-	results := make([]Publisher, len(wanted.Repos))
-	for i, r := range wanted.Repos {
-		go func() {
-			defer wg.Done()
-			res := updateRepo(r)
-			results[i] = res
-		}()
-	}
-	wg.Wait()
-	return results
-}
-
-func (app *App) DisplayResults(results []Publisher) {
-	if app.NoOp() || len(results) == 0 {
 		return
 	}
-	for _, r := range results {
-		r.Publish()
+	wanted.Repos = slices.DeleteFunc(wanted.Repos, func(repo *Repo) bool {
+		return repo == nil || repo.Dir == ""
+	})
+	ch := make(chan Publisher)
+	for _, repo := range wanted.Repos {
+		go func() {
+			updateRepo(repo, ch)
+		}()
+	}
+	for range wanted.Repos {
+		result := <-ch
+		result.Publish()
 	}
 }
 
-func updateRepo(r *Repo) Publisher {
-	args := []string{"push", "--mirror", r.Remote}
+func updateRepo(repo *Repo, ch chan Publisher) {
+	args := []string{"push", "--mirror", repo.Remote}
 	cmd := exec.Command("git", args...)
-	cmd.Dir = r.Dir
+	cmd.Dir = repo.Dir
 	cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
 	err := cmd.Run()
 	if err != nil {
-		return Failure{msg: fmt.Sprintf("%s: problem with %s: %s", appName, cmdString, err)}
+		ch <- Failure{msg: fmt.Sprintf("%s: problem with %s: %s", appName, cmdString, err)}
 	}
-	return Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
+	ch <- Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
 }
