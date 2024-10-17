@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -9,8 +10,6 @@ import (
 	"os/user"
 	"slices"
 	"strings"
-
-	"github.com/pelletier/go-toml/v2"
 )
 
 // App stores information about the application's state.
@@ -25,7 +24,6 @@ type App struct {
 func (app *App) ParseFlags(args []string) (string, bool) {
 	flags := flag.NewFlagSet("git-backup", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-
 	var configFile string
 	var isDefault bool
 	flags.BoolVar(&app.HelpWanted, "help", false, "")
@@ -34,7 +32,6 @@ func (app *App) ParseFlags(args []string) (string, bool) {
 	flags.BoolVar(&app.QuietWanted, "q", false, "")
 	flags.BoolVar(&app.VersionWanted, "version", false, "")
 	flags.StringVar(&configFile, "config", "", "")
-
 	err := flags.Parse(args)
 	switch {
 	// This must precede all other checks.
@@ -58,22 +55,16 @@ type Repo struct {
 	Remote string
 }
 
-// Wanted stores a slice of Repo structs.
-type Wanted struct {
-	Repos []*Repo
-}
-
 // NoOp determines whether an App should bail out.
 func (app *App) NoOp() bool {
 	return app.ExitValue != exitSuccess || app.HelpWanted || app.VersionWanted
 }
 
 // Unmarshal reads a configuration file and returns a Wanted struct.
-func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
+func (app *App) Unmarshal(configFile string, isDefault bool) []Repo {
 	if app.NoOp() {
 		return nil
 	}
-
 	if isDefault {
 		usr, err := user.Current()
 		if err != nil {
@@ -83,44 +74,42 @@ func (app *App) Unmarshal(configFile string, isDefault bool) *Wanted {
 		}
 		configFile = fmt.Sprintf("%s%s%s", usr.HomeDir, string(os.PathSeparator), configFile)
 	}
-
 	blob, err := os.ReadFile(configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 		app.ExitValue = exitFailure
 		return nil
 	}
-
-	var wanted Wanted
-	err = toml.Unmarshal(blob, &wanted)
+	var repos []Repo
+	err = json.Unmarshal(blob, &repos)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 		app.ExitValue = exitFailure
 		return nil
 	}
-	return &wanted
+	return repos
 }
 
 // Mirror runs git push --mirror on a group of repositories and displays the
 // result of the mirror operation.
-func (app *App) Mirror(wanted *Wanted) {
-	if app.NoOp() || len(wanted.Repos) == 0 {
+func (app *App) Mirror(repos []Repo) {
+	if app.NoOp() || len(repos) == 0 {
 		return
 	}
-	wanted.Repos = slices.DeleteFunc(wanted.Repos, func(repo *Repo) bool {
-		return repo == nil || repo.Dir == ""
+	repos = slices.DeleteFunc(repos, func(repo Repo) bool {
+		return repo.Dir == "" || repo.Remote == ""
 	})
 	ch := make(chan Publisher)
-	for _, repo := range wanted.Repos {
+	for _, repo := range repos {
 		go mirror(repo, ch)
 	}
-	for range wanted.Repos {
+	for range repos {
 		result := <-ch
 		result.Publish(app.QuietWanted)
 	}
 }
 
-func mirror(repo *Repo, ch chan<- Publisher) {
+func mirror(repo Repo, ch chan<- Publisher) {
 	args := []string{"push", "--mirror", repo.Remote}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = repo.Dir

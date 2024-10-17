@@ -11,7 +11,7 @@ options:
     -quiet/-q           Suppress output unless an error occurs
     -help               Show this message
     -version            Show version`
-	defaultConfig = ".gitmirror.toml"
+	defaultConfig = ".gitmirror.json"
 	exitSuccess   = 0
 	exitFailure   = 1
 )

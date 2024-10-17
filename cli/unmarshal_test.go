@@ -39,7 +39,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
-	if diff := cmp.Diff(expected, actual.Repos); diff != "" {
+	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
@@ -61,7 +61,7 @@ func TestUnmarshalReplace(t *testing.T) {
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
-	if diff := cmp.Diff(expected, actual.Repos); diff != "" {
+	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
