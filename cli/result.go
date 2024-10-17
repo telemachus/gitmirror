@@ -7,7 +7,7 @@ import (
 
 // Publisher is the interface that wraps the Publish method.
 type Publisher interface {
-	Publish()
+	Publish(quietWanted bool)
 }
 
 type Success struct {
@@ -18,10 +18,13 @@ type Failure struct {
 	msg string
 }
 
-func (s Success) Publish() {
+func (s Success) Publish(quietWanted bool) {
+	if quietWanted {
+		return
+	}
 	fmt.Fprintln(os.Stdout, s.msg)
 }
 
-func (f Failure) Publish() {
+func (f Failure) Publish(_ bool) {
 	fmt.Fprintln(os.Stderr, f.msg)
 }

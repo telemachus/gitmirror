@@ -8,6 +8,7 @@ const (
 
 options:
     -config FILENAME    Specify a configuration file (default = ~/.gitmirror.toml)
+    -quiet/-q           Suppress output unless an error occurs
     -help               Show this message
     -version            Show version`
 	defaultConfig = ".gitmirror.toml"

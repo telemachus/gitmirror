@@ -17,6 +17,7 @@ import (
 type App struct {
 	ExitValue     int
 	HelpWanted    bool
+	QuietWanted   bool
 	VersionWanted bool
 }
 
@@ -28,6 +29,9 @@ func (app *App) ParseFlags(args []string) (string, bool) {
 	var configFile string
 	var isDefault bool
 	flags.BoolVar(&app.HelpWanted, "help", false, "")
+	flags.BoolVar(&app.HelpWanted, "h", false, "")
+	flags.BoolVar(&app.QuietWanted, "quiet", false, "")
+	flags.BoolVar(&app.QuietWanted, "q", false, "")
 	flags.BoolVar(&app.VersionWanted, "version", false, "")
 	flags.StringVar(&configFile, "config", "", "")
 
@@ -112,11 +116,11 @@ func (app *App) Mirror(wanted *Wanted) {
 	}
 	for range wanted.Repos {
 		result := <-ch
-		result.Publish()
+		result.Publish(app.QuietWanted)
 	}
 }
 
-func mirror(repo *Repo, ch chan Publisher) {
+func mirror(repo *Repo, ch chan<- Publisher) {
 	args := []string{"push", "--mirror", repo.Remote}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = repo.Dir
