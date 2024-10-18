@@ -12,8 +12,8 @@ const (
 	exitSuccess = 0
 )
 
-func makeRepos() []*cli.Repo {
-	return []*cli.Repo{
+func makeRepos() []cli.Repo {
+	return []cli.Repo{
 		{Remote: "backup", Dir: "/home/username/foo"},
 		{Remote: "backblaze", Dir: "/Users/foo/bar"},
 		{Remote: "backup", Dir: "/home/username/bar"},
@@ -35,7 +35,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 	t.Parallel()
 	expected := makeRepos()
 	app := &cli.App{}
-	actual := app.Unmarshal("testdata/backups.toml", false)
+	actual := app.Unmarshal("testdata/backups.json", false)
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
@@ -47,7 +47,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 func TestUnmarshalFailure(t *testing.T) {
 	t.Parallel()
 	app := &cli.App{}
-	app.Unmarshal("testdata/nope.toml", false)
+	app.Unmarshal("testdata/nope.json", false)
 	if app.ExitValue != exitFailure {
 		t.Errorf("expected exit status: %d; actual exit status: %d", exitFailure, app.ExitValue)
 	}
@@ -57,7 +57,7 @@ func TestUnmarshalReplace(t *testing.T) {
 	t.Parallel()
 	expected := makeRepos()
 	app := &cli.App{}
-	actual := app.Unmarshal("testdata/backups.toml", false)
+	actual := app.Unmarshal("testdata/backups.json", false)
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}

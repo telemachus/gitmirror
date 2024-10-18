@@ -3,11 +3,11 @@ package cli
 
 const (
 	appName    = "gitmirror"
-	appVersion = "v0.0.3"
+	appVersion = "v0.1.0"
 	appUsage   = `usage: gitmirror [-config FILENAME]
 
 options:
-    -config FILENAME    Specify a configuration file (default = ~/.gitmirror.toml)
+    -config FILENAME    Specify a configuration file (default = ~/.gitmirror.json)
     -quiet/-q           Suppress output unless an error occurs
     -help               Show this message
     -version            Show version`
@@ -20,7 +20,7 @@ options:
 func Run(args []string) int {
 	app := &App{ExitValue: exitSuccess}
 	configFile, isDefault := app.ParseFlags(args)
-	wanted := app.Unmarshal(configFile, isDefault)
-	app.Mirror(wanted)
+	repos := app.Unmarshal(configFile, isDefault)
+	app.Mirror(repos)
 	return app.ExitValue
 }

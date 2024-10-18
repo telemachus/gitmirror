@@ -101,7 +101,7 @@ func (app *App) Mirror(repos []Repo) {
 	})
 	ch := make(chan Publisher)
 	for _, repo := range repos {
-		go mirror(repo, ch)
+		go app.mirror(repo, ch)
 	}
 	for range repos {
 		result := <-ch
@@ -109,13 +109,14 @@ func (app *App) Mirror(repos []Repo) {
 	}
 }
 
-func mirror(repo Repo, ch chan<- Publisher) {
+func (app *App) mirror(repo Repo, ch chan<- Publisher) {
 	args := []string{"push", "--mirror", repo.Remote}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = repo.Dir
 	cmdString := fmt.Sprintf("`git %s` (in %s)", strings.Join(args, " "), cmd.Dir)
 	err := cmd.Run()
 	if err != nil {
+		app.ExitValue = exitFailure
 		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", appName, cmdString, err)}
 	}
 	ch <- Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}

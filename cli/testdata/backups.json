@@ -1,0 +1,26 @@
+[
+	{
+		"remote": "backup",
+		"dir": "/home/username/foo"
+	},
+
+	{
+		"remote": "backblaze",
+		"dir": "/Users/foo/bar"
+	},
+
+	{
+		"remote": "backup",
+		"dir": "/home/username/bar"
+	},
+
+	{
+		"remote": "rsync",
+		"dir": "foo/bar"
+	},
+
+	{
+		"remote": "backup",
+		"dir": "foo/bar/buzz"
+	}
+]
