@@ -1,4 +1,4 @@
-name: humane test
+name: gitmirror test
 on:
   push:
   pull_request:
