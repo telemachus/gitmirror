@@ -1,30 +1,28 @@
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := test
 
 fmt:
-	go fmt ./...
+	golangci-lint run --disable-all --no-config -Egofmt --fix
+	golangci-lint run --disable-all --no-config -Egofumpt --fix
 
-errcheck: fmt
-	errcheck ./...
+lint: fmt
+	golangci-lint run
 
-staticcheck: errcheck
-	staticcheck ./...
+test:
+	go test -shuffle on github.com/telemachus/gitmirror/cli
 
-vet: staticcheck
-	go vet ./...
+testv:
+	go test -shuffle on -v github.com/telemachus/gitmirror/cli
 
-build: vet
+testr:
+	go test -race -shuffle on github.com/telemachus/gitmirror/cli
+
+build: lint testr
 	go build .
 
 install: build
 	go install .
 
-test:
-	go test -shuffle on ./...
-
-testv:
-	go test -shuffle on -v ./...
-
 clean:
-	$(RM) git-backup
+	go clean -i -r -cache
 
-.PHONY: fmt errcheck staticcheck vet build install test testv clean
+.PHONY: fmt lint build install test testv testr clean

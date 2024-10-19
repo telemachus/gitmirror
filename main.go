@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"git.sr.ht/~telemachus/gitmirror/cli"
+	"github.com/telemachus/gitmirror/cli"
 )
 
 func main() {

@@ -1,64 +1,51 @@
 package cli_test
 
 import (
-	"reflect"
 	"testing"
 
-	"git.sr.ht/~telemachus/gitmirror/cli"
+	"github.com/google/go-cmp/cmp"
+	"github.com/telemachus/gitmirror/cli"
 )
 
-const exitFailure = 1
+const (
+	exitFailure = 1
+	exitSuccess = 0
+)
 
-func makeRepos() []*cli.Repo {
-	backups := make([]*cli.Repo, 0, 5)
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "/home/username/foo"})
-	backups = append(backups, &cli.Repo{Remote: "backblaze", Dir: "/Users/foo/bar"})
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "/home/username/bar"})
-	backups = append(backups, &cli.Repo{Remote: "rsync", Dir: "foo/bar"})
-	backups = append(backups, &cli.Repo{Remote: "backup", Dir: "foo/bar/buzz"})
-	return backups
+func makeRepos() []cli.Repo {
+	return []cli.Repo{
+		{Remote: "backup", Dir: "/home/username/foo"},
+		{Remote: "backblaze", Dir: "/Users/foo/bar"},
+		{Remote: "backup", Dir: "/home/username/bar"},
+		{Remote: "rsync", Dir: "foo/bar"},
+		{Remote: "backup", Dir: "foo/bar/buzz"},
+	}
 }
-
-// TODO: Write a test method for toml files with $HOME replaced by the user’s
-// home directory.
-// func makeBackupsForReplacement() []*cli.Repo {
-// 	backups := make([]*cli.Repo, 0, 2)
-// 	backups = append(backups, &cli.Repo{Remote: "backup"})
-// 	backups = append(backups, &cli.Repo{Remote: "backblaze", Dir: ""})
-// 	return backups
-// }
 
 func TestUnmarshalSuccess(t *testing.T) {
 	expected := makeRepos()
-	app := &cli.App{}
-	actual := app.Unmarshal("testdata/backups.toml", false)
-	if app.Err != nil {
-		t.Fatal(app.Err)
+	app := cli.NewApp()
+	actual := app.Unmarshal("testdata/backups.json", false)
+	if app.ExitValue != exitSuccess {
+		t.Fatal("app.ExitValue != exitSuccess")
 	}
-	if !reflect.DeepEqual(expected, actual.Repos) {
-		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
 
 func TestUnmarshalFailure(t *testing.T) {
-	app := &cli.App{}
-	app.Unmarshal("testdata/nope.toml", false)
-	if app.Err == nil {
-		t.Errorf("error is nil but we tried to unmarshal a nonexistent file")
-	}
+	app := cli.NewApp()
+	app.Unmarshal("testdata/nope.json", false)
 	if app.ExitValue != exitFailure {
-		t.Errorf("expected %d; actual %v", exitFailure, app.ExitValue)
+		t.Errorf("expected exit status: %d; actual exit status: %d", exitFailure, app.ExitValue)
 	}
 }
 
-func TestUnmarshalReplace(t *testing.T) {
-	expected := makeRepos()
-	app := &cli.App{}
-	actual := app.Unmarshal("testdata/backups.toml", false)
-	if app.Err != nil {
-		t.Fatal(app.Err)
-	}
-	if !reflect.DeepEqual(expected, actual.Repos) {
-		t.Errorf("expected %#v; actual %#v", expected, actual.Repos)
+func TestUnmarshalRepoChecks(t *testing.T) {
+	app := cli.NewApp()
+	actual := app.Unmarshal("testdata/repo-checks.json", false)
+	if len(actual) != 0 {
+		t.Error("expected no repos from testdata/repo-checks.json")
 	}
 }
