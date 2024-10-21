@@ -1,10 +1,10 @@
 [
 	{
-		"remote": "",
-		"dir": "/Users/telemachus/go/src/github.com/telemachus/gopl"
-	}
+		"url": "https://github.com/user/repo.git",
+		"name": ""
+	},
 	{
-		"remote": "antinous",
-		"dir": ""
+		"url": "",
+		"name": "repo.git"
 	}
 ]
