@@ -1,26 +1,14 @@
 [
 	{
-		"remote": "backup",
-		"dir": "/home/username/foo"
+		"url": "https://github.com/foo/foo.git",
+		"name": "foo.git"
 	},
-
 	{
-		"remote": "backblaze",
-		"dir": "/Users/foo/bar"
+		"url": "https://github.com/bar/bar.git",
+		"name": "bar.git"
 	},
-
 	{
-		"remote": "backup",
-		"dir": "/home/username/bar"
-	},
-
-	{
-		"remote": "rsync",
-		"dir": "foo/bar"
-	},
-
-	{
-		"remote": "backup",
-		"dir": "foo/bar/buzz"
+		"url": "https://example.com/buzz/fizz.git",
+		"name": "random.git"
 	}
 ]

@@ -14,11 +14,9 @@ const (
 
 func makeRepos() []cli.Repo {
 	return []cli.Repo{
-		{Remote: "backup", Dir: "/home/username/foo"},
-		{Remote: "backblaze", Dir: "/Users/foo/bar"},
-		{Remote: "backup", Dir: "/home/username/bar"},
-		{Remote: "rsync", Dir: "foo/bar"},
-		{Remote: "backup", Dir: "foo/bar/buzz"},
+		{URL: "https://github.com/foo/foo.git", Name: "foo.git"},
+		{URL: "https://github.com/bar/bar.git", Name: "bar.git"},
+		{URL: "https://example.com/buzz/fizz.git", Name: "random.git"},
 	}
 }
 
@@ -30,7 +28,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
+		t.Errorf("app.Unmarshal(\"testdata/backups.json\") failure (-want +got)\n%s", diff)
 	}
 }
 
@@ -38,7 +36,7 @@ func TestUnmarshalFailure(t *testing.T) {
 	app := cli.NewApp()
 	app.Unmarshal("testdata/nope.json", false)
 	if app.ExitValue != exitFailure {
-		t.Errorf("expected exit status: %d; actual exit status: %d", exitFailure, app.ExitValue)
+		t.Errorf("app.Unmarshal(\"testdata/nope.json\") exit value: %d; expected %d", app.ExitValue, exitFailure)
 	}
 }
 
@@ -46,6 +44,6 @@ func TestUnmarshalRepoChecks(t *testing.T) {
 	app := cli.NewApp()
 	actual := app.Unmarshal("testdata/repo-checks.json", false)
 	if len(actual) != 0 {
-		t.Error("expected no repos from testdata/repo-checks.json")
+		t.Errorf("app.Unmarshal(\"testdata/repo-checks.json\") expected len(repos) = 0; actual: %d", len(actual))
 	}
 }
