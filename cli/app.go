@@ -16,8 +16,8 @@ import (
 type App struct {
 	HomeDir       string
 	ExitValue     int
-	InitWanted    bool
 	HelpWanted    bool
+	PruneWanted   bool
 	QuietWanted   bool
 	VersionWanted bool
 }
@@ -37,26 +37,22 @@ func NewApp() *App {
 	return &App{ExitValue: exitSuccess, HomeDir: homeDir}
 }
 
-// ParseFlags handles flags and options in my finicky way.
-func (app *App) ParseFlags(args []string) (string, bool) {
+// ParseGitmirror handles flags and options in my finicky way.
+func (app *App) ParseGitmirror(args []string) (string, bool) {
 	if app.NoOp() {
 		return "", false
 	}
-	flags := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
+	gitmirrorCmd := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
+	gitmirrorCmd.SetOutput(io.Discard)
 	var configFile string
 	var configIsDefault bool
-	flags.BoolVar(&app.HelpWanted, "help", false, "")
-	flags.BoolVar(&app.HelpWanted, "h", false, "")
-	flags.BoolVar(&app.InitWanted, "init", false, "")
-	flags.BoolVar(&app.InitWanted, "i", false, "")
-	flags.BoolVar(&app.QuietWanted, "quiet", false, "")
-	flags.BoolVar(&app.QuietWanted, "q", false, "")
-	flags.BoolVar(&app.VersionWanted, "version", false, "")
-	flags.BoolVar(&app.VersionWanted, "v", false, "")
-	flags.StringVar(&configFile, "config", "", "")
-	flags.StringVar(&configFile, "c", "", "")
-	err := flags.Parse(args)
+	gitmirrorCmd.BoolVar(&app.HelpWanted, "help", false, "")
+	gitmirrorCmd.BoolVar(&app.HelpWanted, "h", false, "")
+	gitmirrorCmd.BoolVar(&app.VersionWanted, "version", false, "")
+	gitmirrorCmd.BoolVar(&app.VersionWanted, "v", false, "")
+	gitmirrorCmd.StringVar(&configFile, "config", "", "")
+	gitmirrorCmd.StringVar(&configFile, "c", "", "")
+	err := gitmirrorCmd.Parse(args)
 	switch {
 	// This must precede all other checks.
 	case err != nil:
@@ -71,6 +67,50 @@ func (app *App) ParseFlags(args []string) (string, bool) {
 		configIsDefault = true
 	}
 	return configFile, configIsDefault
+}
+
+// ParseInitialize checks the flags for the initialize|init command.
+func (app *App) ParseInitialize(args []string) {
+	if app.NoOp() {
+		return
+	}
+	initializeCmd := flag.NewFlagSet("initialize", flag.ContinueOnError)
+	initializeCmd.SetOutput(io.Discard)
+	initializeCmd.BoolVar(&app.QuietWanted, "quiet", false, "")
+	initializeCmd.BoolVar(&app.QuietWanted, "q", false, "")
+	err := initializeCmd.Parse(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		app.ExitValue = exitFailure
+	}
+	// After parsing is over, there should not be any extra arguments.
+	if len(initializeCmd.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, appUsage)
+		app.ExitValue = exitFailure
+	}
+}
+
+// ParseUpdate checks the flags for the update command.
+func (app *App) ParseUpdate(args []string) {
+	if app.NoOp() {
+		return
+	}
+	updateCmd := flag.NewFlagSet("update", flag.ContinueOnError)
+	updateCmd.SetOutput(io.Discard)
+	updateCmd.BoolVar(&app.QuietWanted, "quiet", false, "")
+	updateCmd.BoolVar(&app.QuietWanted, "q", false, "")
+	updateCmd.BoolVar(&app.PruneWanted, "prune", false, "")
+	updateCmd.BoolVar(&app.PruneWanted, "p", false, "")
+	err := updateCmd.Parse(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		app.ExitValue = exitFailure
+	}
+	// After parsing is over, there should not be any extra arguments.
+	if len(updateCmd.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, appUsage)
+		app.ExitValue = exitFailure
+	}
 }
 
 // Repo stores information about a git repository.
@@ -157,7 +197,7 @@ func (app *App) initialize(repo Repo, ch chan<- Publisher) {
 
 // Update runs git repote update on a group of repositories.
 func (app *App) Update(repos []Repo) {
-	if app.InitWanted || app.NoOp() {
+	if app.NoOp() {
 		return
 	}
 	ch := make(chan Publisher)
