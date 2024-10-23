@@ -12,6 +12,13 @@ const (
 	exitSuccess = 0
 )
 
+func newApp(config string) *cli.App {
+	app := cli.NewApp()
+	app.ConfigFile = config
+	app.CustomConfig = true
+	return app
+}
+
 func makeRepos() []cli.Repo {
 	return []cli.Repo{
 		{URL: "https://github.com/foo/foo.git", Name: "foo.git"},
@@ -22,27 +29,27 @@ func makeRepos() []cli.Repo {
 
 func TestUnmarshalSuccess(t *testing.T) {
 	expected := makeRepos()
-	app := cli.NewApp()
-	actual := app.Unmarshal("testdata/backups.json", false)
+	app := newApp("testdata/backups.json")
+	actual := app.Unmarshal()
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
 	}
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("app.Unmarshal(\"testdata/backups.json\") failure (-want +got)\n%s", diff)
+		t.Errorf("app.Unmarshal() failure (-want +got)\n%s", diff)
 	}
 }
 
 func TestUnmarshalFailure(t *testing.T) {
-	app := cli.NewApp()
-	app.Unmarshal("testdata/nope.json", false)
+	app := newApp("testdata/nope.json")
+	app.Unmarshal()
 	if app.ExitValue != exitFailure {
-		t.Errorf("app.Unmarshal(\"testdata/nope.json\") exit value: %d; expected %d", app.ExitValue, exitFailure)
+		t.Errorf("app.Unmarshal() exit value: %d; expected %d", app.ExitValue, exitFailure)
 	}
 }
 
 func TestUnmarshalRepoChecks(t *testing.T) {
-	app := cli.NewApp()
-	actual := app.Unmarshal("testdata/repo-checks.json", false)
+	app := newApp("testdata/repo-checks.json")
+	actual := app.Unmarshal()
 	if len(actual) != 0 {
 		t.Errorf("app.Unmarshal(\"testdata/repo-checks.json\") expected len(repos) = 0; actual: %d", len(actual))
 	}

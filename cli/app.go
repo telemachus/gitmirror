@@ -15,10 +15,13 @@ import (
 // App stores information about the application's state.
 type App struct {
 	HomeDir       string
+	ConfigFile    string
 	ExitValue     int
+	CustomConfig  bool
 	InitWanted    bool
 	HelpWanted    bool
 	QuietWanted   bool
+	PruneWanted   bool
 	VersionWanted bool
 }
 
@@ -34,43 +37,82 @@ func NewApp() *App {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 		return &App{ExitValue: exitFailure}
 	}
-	return &App{ExitValue: exitSuccess, HomeDir: homeDir}
+	return &App{
+		ExitValue: exitSuccess,
+		HomeDir:   homeDir,
+	}
 }
 
-// ParseFlags handles flags and options in my finicky way.
-func (app *App) ParseFlags(args []string) (string, bool) {
+// ParseGitmirror handles flags and options in my finicky way.
+func (app *App) ParseGitmirror(args []string) []string {
 	if app.NoOp() {
-		return "", false
+		return nil
 	}
-	flags := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	var configFile string
-	var configIsDefault bool
-	flags.BoolVar(&app.HelpWanted, "help", false, "")
-	flags.BoolVar(&app.HelpWanted, "h", false, "")
-	flags.BoolVar(&app.InitWanted, "init", false, "")
-	flags.BoolVar(&app.InitWanted, "i", false, "")
-	flags.BoolVar(&app.QuietWanted, "quiet", false, "")
-	flags.BoolVar(&app.QuietWanted, "q", false, "")
-	flags.BoolVar(&app.VersionWanted, "version", false, "")
-	flags.BoolVar(&app.VersionWanted, "v", false, "")
-	flags.StringVar(&configFile, "config", "", "")
-	flags.StringVar(&configFile, "c", "", "")
-	err := flags.Parse(args)
+	gitmirrorCmd := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
+	gitmirrorCmd.SetOutput(io.Discard)
+	gitmirrorCmd.BoolVar(&app.HelpWanted, "help", false, "")
+	gitmirrorCmd.BoolVar(&app.HelpWanted, "h", false, "")
+	gitmirrorCmd.BoolVar(&app.VersionWanted, "version", false, "")
+	gitmirrorCmd.BoolVar(&app.VersionWanted, "v", false, "")
+	gitmirrorCmd.StringVar(&app.ConfigFile, "config", "", "")
+	gitmirrorCmd.StringVar(&app.ConfigFile, "c", "", "")
+	err := gitmirrorCmd.Parse(args)
 	switch {
 	// This must precede all other checks.
 	case err != nil:
-		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, gitmirrorUsage)
 		app.ExitValue = exitFailure
 	case app.HelpWanted:
-		fmt.Println(appUsage)
+		fmt.Println(gitmirrorUsage)
 	case app.VersionWanted:
 		fmt.Printf("%s: %s\n", appName, appVersion)
-	case configFile == "":
-		configFile = defaultConfig
-		configIsDefault = true
+	case app.ConfigFile != "":
+		app.ConfigFile = defaultConfig
+		app.CustomConfig = true
 	}
-	return configFile, configIsDefault
+	return gitmirrorCmd.Args()
+}
+
+// ParseUpdate parses the subcommand update.
+func (app *App) ParseUpdate(args []string) {
+	if app.NoOp() {
+		return
+	}
+	updateCmd := flag.NewFlagSet("update", flag.ContinueOnError)
+	updateCmd.SetOutput(io.Discard)
+	updateCmd.BoolVar(&app.QuietWanted, "quiet", false, "")
+	updateCmd.BoolVar(&app.QuietWanted, "q", false, "")
+	updateCmd.BoolVar(&app.PruneWanted, "prune", false, "")
+	updateCmd.BoolVar(&app.PruneWanted, "p", false, "")
+	err := updateCmd.Parse(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, gitmirrorUsage)
+		app.ExitValue = exitFailure
+	}
+	if len(updateCmd.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, updateUsage)
+		app.ExitValue = exitFailure
+	}
+}
+
+// ParseInitialize parses the subcommand update.
+func (app *App) ParseInitialize(args []string) {
+	if app.NoOp() {
+		return
+	}
+	initializeCmd := flag.NewFlagSet("initialize", flag.ContinueOnError)
+	initializeCmd.SetOutput(io.Discard)
+	initializeCmd.BoolVar(&app.QuietWanted, "quiet", false, "")
+	initializeCmd.BoolVar(&app.QuietWanted, "q", false, "")
+	err := initializeCmd.Parse(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, gitmirrorUsage)
+		app.ExitValue = exitFailure
+	}
+	if len(initializeCmd.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, initializeUsage)
+		app.ExitValue = exitFailure
+	}
 }
 
 // Repo stores information about a git repository.
@@ -80,14 +122,14 @@ type Repo struct {
 }
 
 // Unmarshal reads a configuration file and returns a slice of Repo.
-func (app *App) Unmarshal(configFile string, configIsDefault bool) []Repo {
+func (app *App) Unmarshal() []Repo {
 	if app.NoOp() {
 		return nil
 	}
-	if configIsDefault {
-		configFile = filepath.Join(app.HomeDir, configFile)
+	if !app.CustomConfig {
+		app.ConfigFile = filepath.Join(app.HomeDir, defaultConfig)
 	}
-	blob, err := os.ReadFile(configFile)
+	blob, err := os.ReadFile(app.ConfigFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 		app.ExitValue = exitFailure
