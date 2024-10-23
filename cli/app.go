@@ -12,14 +12,18 @@ import (
 )
 
 const (
-	defaultConfig = ".gitmirror.json"
-	exitSuccess   = 0
-	exitFailure   = 1
+	defaultConfig  = ".gitmirror.json"
+	defaultStorage = ".local/share/gitmirror"
+	exitSuccess    = 0
+	exitFailure    = 1
 )
 
 // App stores information about the application's state.
 type App struct {
 	HomeDir       string
+	CmdName       string
+	Version       string
+	Usage         string
 	ExitValue     int
 	HelpWanted    bool
 	QuietWanted   bool
@@ -32,13 +36,19 @@ func (app *App) NoOp() bool {
 }
 
 // NewApp returns a new App pointer.
-func NewApp() *App {
+func NewApp(cmdName, cmdVersion, cmdUsage string) *App {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", cmdName, err)
 		return &App{ExitValue: exitFailure}
 	}
-	return &App{ExitValue: exitSuccess, HomeDir: homeDir}
+	return &App{
+		CmdName:   cmdName,
+		Version:   cmdVersion,
+		Usage:     cmdUsage,
+		ExitValue: exitSuccess,
+		HomeDir:   homeDir,
+	}
 }
 
 // Repo stores information about a git repository.
@@ -52,7 +62,7 @@ func (app *App) Flags(args []string) (string, bool) {
 	if app.NoOp() {
 		return "", false
 	}
-	cmdFlags := flag.NewcmdFlagset("gitmirror", flag.ContinueOnError)
+	cmdFlags := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
 	cmdFlags.SetOutput(io.Discard)
 	var configFile string
 	var configIsDefault bool
@@ -68,12 +78,12 @@ func (app *App) Flags(args []string) (string, bool) {
 	switch {
 	// This must precede all other checks.
 	case err != nil:
-		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", appName, err, appUsage)
+		fmt.Fprintf(os.Stderr, "%s: %s\n%s\n", app.CmdName, err, app.Usage)
 		app.ExitValue = exitFailure
 	case app.HelpWanted:
-		fmt.Println(appUsage)
+		fmt.Println(app.Usage)
 	case app.VersionWanted:
-		fmt.Printf("%s: v%s\n", appName, appVersion)
+		fmt.Printf("%s: v%s\n", app.CmdName, app.Version)
 	case configFile == "":
 		configFile = defaultConfig
 		configIsDefault = true
@@ -91,14 +101,14 @@ func (app *App) Unmarshal(configFile string, configIsDefault bool) []Repo {
 	}
 	blob, err := os.ReadFile(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", app.CmdName, err)
 		app.ExitValue = exitFailure
 		return nil
 	}
 	repos := make([]Repo, 0, 20)
 	err = json.Unmarshal(blob, &repos)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", app.CmdName, err)
 		app.ExitValue = exitFailure
 		return nil
 	}

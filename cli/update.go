@@ -9,7 +9,7 @@ import (
 
 const (
 	updateCmd     = "gitmirror-update"
-	updateVersion = "v0.1.0"
+	updateVersion = "0.1.0"
 	updateUsage   = `usage: gitmirror-update [-config FILENAME]
 
 options:
@@ -21,7 +21,7 @@ options:
 
 // Update runs git repote update on a group of repositories.
 func (app *App) Update(repos []Repo) {
-	if app.InitWanted || app.NoOp() {
+	if app.NoOp() {
 		return
 	}
 	ch := make(chan Publisher)
@@ -46,15 +46,15 @@ func (app *App) update(repo Repo, ch chan<- Publisher) {
 	err := cmd.Run()
 	if err != nil {
 		app.ExitValue = exitFailure
-		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", appName, cmdString, err)}
+		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", app.CmdName, cmdString, err)}
 		return
 	}
-	ch <- Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
+	ch <- Success{msg: fmt.Sprintf("%s: %s", app.CmdName, cmdString)}
 }
 
 // CmdUpdate runs `git remote update` on repos listed in a config file.
 func CmdUpdate(args []string) int {
-	app := NewApp()
+	app := NewApp(updateCmd, updateVersion, updateUsage)
 	configFile, configIsDefault := app.Flags(args)
 	repos := app.Unmarshal(configFile, configIsDefault)
 	app.Update(repos)

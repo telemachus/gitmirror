@@ -50,7 +50,7 @@ func (app *App) initialize(repo Repo, ch chan<- Publisher) {
 	// to send a Success on the channel and return.
 	repoPath := filepath.Join(app.HomeDir, defaultStorage, repo.Name)
 	if _, err := os.Stat(repoPath); err == nil {
-		ch <- Success{msg: fmt.Sprintf("%s: %s already exists", appName, repoPath)}
+		ch <- Success{msg: fmt.Sprintf("%s: %s already exists", app.CmdName, repoPath)}
 		return
 	}
 	args := []string{"clone", "--mirror", repo.URL, repo.Name}
@@ -64,15 +64,15 @@ func (app *App) initialize(repo Repo, ch chan<- Publisher) {
 	err := cmd.Run()
 	if err != nil {
 		app.ExitValue = exitFailure
-		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", appName, cmdString, err)}
+		ch <- Failure{msg: fmt.Sprintf("%s: %s: %s", app.CmdName, cmdString, err)}
 		return
 	}
-	ch <- Success{msg: fmt.Sprintf("%s: %s", appName, cmdString)}
+	ch <- Success{msg: fmt.Sprintf("%s: %s", app.CmdName, cmdString)}
 }
 
 // InitRun clones requested repos locally for mirroring.
-func InitRun(args []string) int {
-	app := NewApp()
+func CmdInitialize(args []string) int {
+	app := NewApp(initCmd, initVersion, initUsage)
 	configFile, configIsDefault := app.Flags(args)
 	repos := app.Unmarshal(configFile, configIsDefault)
 	app.Initialize(repos)
