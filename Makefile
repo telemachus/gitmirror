@@ -17,15 +17,18 @@ testr:
 	go test -race -shuffle on github.com/telemachus/gitmirror/cli
 
 build: lint testr
+	go build -o gitmirror ./cmd/gitmirror/main.go
 	go build -o gitmirror-init  ./cmd/gitmirror-init/main.go
 	go build -o gitmirror-update  ./cmd/gitmirror-update/main.go
 
 install: build
+	mv gitmirror $(HOME)/bin/gitmirror
 	mv gitmirror-init $(HOME)/bin/gitmirror-init
 	mv gitmirror-update $(HOME)/bin/gitmirror-update
 
 clean:
 	go clean -i -r -cache
+	rm gitmirror
 	rm gitmirror-init
 	rm gitmirror-update
 
