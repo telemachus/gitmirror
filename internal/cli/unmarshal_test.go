@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/telemachus/gitmirror/cli"
+	"github.com/telemachus/gitmirror/internal/cli"
 )
 
 const (
 	exitFailure = 1
 	exitSuccess = 0
+	testUsage   = "usage: gitmirror-test"
 )
 
 func makeRepos() []cli.Repo {
@@ -22,7 +23,7 @@ func makeRepos() []cli.Repo {
 
 func TestUnmarshalSuccess(t *testing.T) {
 	expected := makeRepos()
-	app := cli.NewApp()
+	app := cli.NewApp(testUsage)
 	actual := app.Unmarshal("testdata/backups.json", false)
 	if app.ExitValue != exitSuccess {
 		t.Fatal("app.ExitValue != exitSuccess")
@@ -33,7 +34,7 @@ func TestUnmarshalSuccess(t *testing.T) {
 }
 
 func TestUnmarshalFailure(t *testing.T) {
-	app := cli.NewApp()
+	app := cli.NewApp(testUsage)
 	app.Unmarshal("testdata/nope.json", false)
 	if app.ExitValue != exitFailure {
 		t.Errorf("app.Unmarshal(\"testdata/nope.json\") exit value: %d; expected %d", app.ExitValue, exitFailure)
@@ -41,7 +42,7 @@ func TestUnmarshalFailure(t *testing.T) {
 }
 
 func TestUnmarshalRepoChecks(t *testing.T) {
-	app := cli.NewApp()
+	app := cli.NewApp(testUsage)
 	actual := app.Unmarshal("testdata/repo-checks.json", false)
 	if len(actual) != 0 {
 		t.Errorf("app.Unmarshal(\"testdata/repo-checks.json\") expected len(repos) = 0; actual: %d", len(actual))

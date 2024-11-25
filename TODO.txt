@@ -1,0 +1,11 @@
+# TODO
+
+## Clean up
+
+This works now as a single command, but there’s a lot of overlapping 
+responsibilities and cruft.
+
++ How should I handle the command and subcommand names? (Store them in the app? 
+  Store them as package constants? Something else?)
++ What is the responsibility of the app versus just a function call?
++ Maybe I can handle flags and flag-parsing better?
