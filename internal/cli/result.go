@@ -15,8 +15,10 @@ func (r result) publish(quiet bool) {
 		fmt.Fprintln(os.Stderr, r.msg)
 		return
 	}
+
 	if quiet {
 		return
 	}
+
 	fmt.Fprintln(os.Stdout, r.msg)
 }

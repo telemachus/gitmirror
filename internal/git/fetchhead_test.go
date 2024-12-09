@@ -8,6 +8,7 @@ import (
 
 func TestFetchHeadEquality(t *testing.T) {
 	t.Parallel()
+
 	testCases := map[string]struct {
 		fhBefore string
 		fhAfter  string
@@ -34,17 +35,21 @@ func TestFetchHeadEquality(t *testing.T) {
 			expected: false,
 		},
 	}
+
 	for msg, tc := range testCases {
 		t.Run(msg, func(t *testing.T) {
 			t.Parallel()
+
 			fhBefore, err := git.NewFetchHead(tc.fhBefore)
 			if err != nil {
 				t.Fatalf("%s: %s", tc.fhBefore, err)
 			}
+
 			fhAfter, err := git.NewFetchHead(tc.fhAfter)
 			if err != nil {
 				t.Fatalf("%s: %s", tc.fhAfter, err)
 			}
+
 			got := fhBefore.Equals(fhAfter)
 			if got != tc.expected {
 				t.Errorf("fhBefore.Equals(fhAfter) = %v; want %v", got, tc.expected)

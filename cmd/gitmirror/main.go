@@ -1,3 +1,4 @@
+// gitmirror uses git commands to backup git repositories.
 package main
 
 import (
@@ -7,5 +8,5 @@ import (
 )
 
 func main() {
-	os.Exit(cli.CmdGitmirror(os.Args[1:]))
+	os.Exit(cli.Gitmirror(os.Args))
 }

@@ -6,35 +6,33 @@ import (
 )
 
 const (
-	gitmirrorName    = "gitmirror"
-	gitmirrorVersion = "v0.9.0"
+	cmd         = "gitmirror"
+	cmdVersion  = "v0.9.5"
+	config      = ".gitmirror.json"
+	storage     = ".local/share/gitmirror"
+	exitSuccess = 0
+	exitFailure = 1
 )
 
-// CmdWrapper turns, e.g., `gitmirror update -q` into `gitmirror-update -q`.
-func CmdGitmirror(args []string) int {
-	if len(args) < 1 {
-		fmt.Fprint(os.Stderr, gitmirrorUsage)
+// Gitmirror runs a subcommand and returns success or failure to the shell.
+func Gitmirror(args []string) int {
+	app, err := appFrom(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd, err)
 		return exitFailure
 	}
-	// Give the user a hand if they try `gitmirror --help update`.
-	if args[0] == "--help" || args[0] == "-help" || args[0] == "-h" {
-		args[0] = "help"
-	}
-	var exitValue int
-	switch args[0] {
-	case "clone":
-		exitValue = CmdClone(args[1:])
+
+	switch app.subCmd {
 	case "update", "up":
-		exitValue = CmdUpdate(args[1:])
-	case "version":
-		exitValue = CmdVersion(args[1:])
-	case "help":
-		// TODO: write the help in Asciidoc?
-		exitValue = CmdHelp(args[1:])
+		subCmdUpdate(app)
+	case "clone":
+		subCmdClone(app)
+	case "sync":
+		subCmdSync(app)
 	default:
-		fmt.Fprintf(os.Stderr, "gitmirror: unrecognized subcommand: \"%s\"\n", args[0])
-		fmt.Fprint(os.Stderr, gitmirrorUsage)
-		exitValue = exitFailure
+		fmt.Fprintf(os.Stderr, "%s: unrecognized subcommand %q\n", app.cmd, app.subCmd)
+		app.exitVal = exitFailure
 	}
-	return exitValue
+
+	return app.exitVal
 }

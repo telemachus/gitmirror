@@ -72,7 +72,6 @@ linters:
     - nakedret
     - prealloc
     - predeclared
-    - staticcheck
     - stylecheck
     - thelper
     - typecheck
@@ -82,7 +81,11 @@ linters:
     - whitespace
 
 run:
+  concurrency: 8
   issues-exit-code: 1
+  timeout: 30m
+  tests: true
+  allow-parallel-runners: false
 
 issues:
   exclude-dirs:

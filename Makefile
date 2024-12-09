@@ -7,7 +7,18 @@ fmt:
 	golangci-lint run --disable-all --no-config -Egofumpt --fix
 
 lint: fmt
+	staticcheck ./...
+	revive -config revive.toml ./...
 	golangci-lint run
+
+golangci: fmt
+	golangci-lint run
+
+staticcheck: fmt
+	staticcheck ./...
+
+revive: fmt
+	revive -config revive.toml -exclude internal/optionparser ./...
 
 test:
 	go test -shuffle on github.com/telemachus/gitmirror/internal/cli

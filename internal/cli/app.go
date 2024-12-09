@@ -1,119 +1,90 @@
+// Package cli creates and runs a command line interface.
 package cli
 
 import (
-	"encoding/json"
-	"flag"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
+
+	"github.com/telemachus/gitmirror/internal/optionparser"
 )
 
-const (
-	defaultConfig  = ".gitmirror.json"
-	defaultStorage = ".local/share/gitmirror"
-	exitSuccess    = 0
-	exitFailure    = 1
-)
-
-// App stores information about the application's state.
-type App struct {
-	HomeDir     string
-	CmdName     string
-	Usage       string
-	ExitValue   int
-	HelpWanted  bool
-	QuietWanted bool
+type appEnv struct {
+	cmd     string
+	subCmd  string
+	config  string
+	home    string
+	storage string
+	exitVal int
+	quiet   bool
 }
 
-// NoOp determines whether an App should bail out.
-func (app *App) NoOp() bool {
-	return app.ExitValue != exitSuccess
-}
+func appFrom(args []string) (*appEnv, error) {
+	app := &appEnv{cmd: cmd, exitVal: exitSuccess}
 
-// NewApp returns a new App pointer.
-func NewApp(cmdUsage string) *App {
-	homeDir, err := os.UserHomeDir()
+	op := optionparser.NewOptionParser()
+	op.On("-c", "--config FILE", "Use FILE as config file (default ~/.gitmirror.json)", &app.config)
+	op.On("-q", "--quiet", "Print only error messages", &app.quiet)
+	op.On("--version", "Print version and exit", version)
+	op.Command("clone", "Clone git repositories using `git clone --mirror`")
+	op.Command("update|up", "Update git repositories using `git remote update`")
+	op.Command("sync", "Run both update and clone (in that order)")
+	op.Start = 24
+	op.Banner = "usage: gitmirror [options] <subcommand>"
+
+	// Do not continue if we cannot parse and validate arguments or get the
+	// user's home directory.
+	if err := op.ParseFrom(args); err != nil {
+		return nil, err
+	}
+	if err := validate(op.Extra); err != nil {
+		return nil, err
+	}
+	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", gitmirrorName, err)
-		return &App{ExitValue: exitFailure}
+		return nil, err
 	}
-	return &App{
-		CmdName:   gitmirrorName,
-		Usage:     gitmirrorUsage,
-		ExitValue: exitSuccess,
-		HomeDir:   homeDir,
+
+	if app.config == "" {
+		app.config = filepath.Join(home, config)
 	}
+	app.storage = filepath.Join(home, storage)
+	app.subCmd = op.Extra[0]
+
+	return app, nil
 }
 
-// Repo stores information about a git repository.
-type Repo struct {
-	URL  string
-	Name string
+func (app *appEnv) noOp() bool {
+	return app.exitVal != exitSuccess
 }
 
-// Flags handles flags and options in my finicky way.
-func (app *App) Flags(args []string) (string, bool) {
-	if app.NoOp() {
-		return "", false
-	}
-	cmdFlags := flag.NewFlagSet("gitmirror", flag.ContinueOnError)
-	cmdFlags.SetOutput(io.Discard)
-	var configFile string
-	var configIsDefault bool
-	cmdFlags.BoolVar(&app.HelpWanted, "help", false, "")
-	cmdFlags.BoolVar(&app.HelpWanted, "h", false, "")
-	cmdFlags.BoolVar(&app.QuietWanted, "quiet", false, "")
-	cmdFlags.BoolVar(&app.QuietWanted, "q", false, "")
-	cmdFlags.StringVar(&configFile, "config", "", "")
-	cmdFlags.StringVar(&configFile, "c", "", "")
-	err := cmdFlags.Parse(args)
-	switch {
-	// This must precede all other checks.
-	case err != nil:
-		fmt.Fprintf(os.Stderr, "%s: %s\n%s", app.CmdName, err, app.Usage)
-		app.ExitValue = exitFailure
-	case app.HelpWanted:
-		fmt.Fprintf(os.Stderr, "%s: use 'help' not '-help' or '-h'\n", app.CmdName)
-		fmt.Fprint(os.Stderr, app.Usage)
-		app.ExitValue = exitFailure
-	case configFile == "":
-		configFile = defaultConfig
-		configIsDefault = true
-	}
-	return configFile, configIsDefault
+func (app *appEnv) prettyPath(s string) string {
+	return strings.Replace(s, app.home, "~", 1)
 }
 
-// Unmarshal reads a configuration file and returns a slice of Repo.
-func (app *App) Unmarshal(configFile string, configIsDefault bool) []Repo {
-	if app.NoOp() {
-		return nil
+func validate(extra []string) error {
+	if len(extra) != 1 {
+		return errors.New("one (and only one) subcommand is required")
 	}
-	if configIsDefault {
-		configFile = filepath.Join(app.HomeDir, configFile)
+
+	// The only recognized subcommands are clone, up(date), and sync.
+	recognized := map[string]struct{}{
+		"clone":  {},
+		"update": {},
+		"up":     {},
+		"sync":   {},
 	}
-	blob, err := os.ReadFile(configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", app.CmdName, err)
-		app.ExitValue = exitFailure
-		return nil
+	if _, ok := recognized[extra[0]]; !ok {
+		return fmt.Errorf("unrecognized subcommand: %q", extra[0])
 	}
-	repos := make([]Repo, 0, 20)
-	err = json.Unmarshal(blob, &repos)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", app.CmdName, err)
-		app.ExitValue = exitFailure
-		return nil
-	}
-	// Every repository must have a URL and a directory name.
-	return slices.DeleteFunc(repos, func(repo Repo) bool {
-		return repo.URL == "" || repo.Name == ""
-	})
+
+	return nil
 }
 
-// PrettyPath replaces a user's home directory with ~ in a string.
-func (app *App) PrettyPath(s string) string {
-	return strings.Replace(s, app.HomeDir, "~", 1)
+// Quick and dirty, but why be fancy in this case?
+func version() {
+	fmt.Printf("%s %s\n", cmd, cmdVersion)
+	os.Exit(exitSuccess)
 }

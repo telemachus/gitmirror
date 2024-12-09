@@ -7,69 +7,68 @@ import (
 	"path/filepath"
 )
 
-// Clone runs git repote update on a group of repositories.
-func (app *App) Clone(repos []Repo) {
-	if app.NoOp() {
+func subCmdClone(app *appEnv) {
+	rs := app.repos()
+	app.clone(rs)
+}
+
+func (app *appEnv) clone(rs []Repo) {
+	if app.noOp() {
 		return
 	}
-	err := os.MkdirAll(filepath.Join(app.HomeDir, defaultStorage), os.ModePerm)
+
+	err := os.MkdirAll(app.storage, os.ModePerm)
 	if err != nil {
-		app.ExitValue = exitFailure
+		fmt.Fprintf(os.Stderr, "%s %s: %s\n", app.cmd, app.subCmd, err)
+		app.exitVal = exitFailure
 		return
 	}
+
 	ch := make(chan result)
-	for _, repo := range repos {
-		go app.clone(repo, ch)
+	for _, r := range rs {
+		go app.cloneOne(r, ch)
 	}
-	for range repos {
+	for range rs {
 		res := <-ch
-		res.publish(app.QuietWanted)
+		res.publish(app.quiet)
 	}
 }
 
-func (app *App) clone(repo Repo, ch chan<- result) {
+func (app *appEnv) cloneOne(r Repo, ch chan<- result) {
 	// Normally, it is a bad idea to check whether a directory exists
 	// before trying an operation.  However, this case is an exception.
 	// git clone --mirror /path/to/existing/repo.git will fail with an
 	// error, but for the purpose of this app, there is no error.
-	// If a directory with the repo's name exists, I simply want to send
-	// a result saying that the repo exists.
-	repoPath := filepath.Join(app.HomeDir, defaultStorage, repo.Name)
-	storagePath := filepath.Join(app.HomeDir, defaultStorage)
-	if _, err := os.Stat(repoPath); err == nil {
-		prettyPath := app.PrettyPath(storagePath)
+	// If a directory with the repo's name exists, I simply want to skip
+	// that repo.
+	rPath := filepath.Join(app.storage, r.Name)
+	if _, err := os.Stat(rPath); err == nil {
 		ch <- result{
 			isErr: false,
-			msg:   fmt.Sprintf("%s: already present in %s", repo.Name, prettyPath),
+			msg:   fmt.Sprintf("%s: already present in %s", r.Name, app.prettyPath(app.storage)),
 		}
 		return
 	}
-	args := []string{"clone", "--mirror", repo.URL, repo.Name}
+
+	args := []string{"clone", "--mirror", r.URL, r.Name}
 	cmd := exec.Command("git", args...)
 	noGitPrompt := "GIT_TERMINAL_PROMPT=0"
 	env := append(os.Environ(), noGitPrompt)
 	cmd.Env = env
-	cmd.Dir = filepath.Join(app.HomeDir, defaultStorage)
+	cmd.Dir = app.storage
+
 	err := cmd.Run()
 	if err != nil {
-		app.ExitValue = exitFailure
+		app.exitVal = exitFailure
 		ch <- result{
 			isErr: true,
-			msg:   fmt.Sprintf("%s: %s", repo.Name, err),
+			msg:   fmt.Sprintf("%s %s: %s: %s", app.cmd, app.subCmd, r.Name, err),
 		}
 		return
 	}
+
 	ch <- result{
 		isErr: false,
-		msg:   fmt.Sprintf("%s: successfully cloned", repo.Name),
+		msg:   fmt.Sprintf("%s: cloned", r.Name),
 	}
-}
-
-// CmdClone clones requested repos locally for mirroring.
-func CmdClone(args []string) int {
-	app := NewApp(cloneUsage)
-	configFile, configIsDefault := app.Flags(args)
-	repos := app.Unmarshal(configFile, configIsDefault)
-	app.Clone(repos)
-	return app.ExitValue
 }
