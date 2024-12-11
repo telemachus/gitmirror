@@ -32,7 +32,8 @@ func appFrom(args []string) (*appEnv, error) {
 	op.Command("update|up", "Update git repositories using `git remote update`")
 	op.Command("sync", "Run both update and clone (in that order)")
 	op.Start = 24
-	op.Banner = "usage: gitmirror [options] <subcommand>"
+	op.Banner = "Usage: gitmirror [options] <subcommand>"
+	op.Coda = "\nFor more information or to file a bug report visit https://github.com/telemachus/gitmirror"
 
 	// Do not continue if we cannot parse and validate arguments or get the
 	// user's home directory.

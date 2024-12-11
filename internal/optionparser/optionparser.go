@@ -253,7 +253,7 @@ func (op *OptionParser) Command(cmd string, helptext string) {
 //
 //	go run main.go --help
 //	   Usage: [parameter] command
-//	   -h, --help                   Show this help
+//	   -h, --help                   Print this help and exit
 //	   -a, --func                   call myfunc
 //	       --bstring=FOO            set string to FOO
 //	   -c                           set boolean option (try -no-c)
@@ -310,12 +310,19 @@ func (op *OptionParser) On(a ...interface{}) {
 	}
 }
 
-// ParseFrom takes a slice of string arguments and interprets them. If it finds an unknown option or a missing
-// mandatory argument, it returns an error.
+// ParseFrom takes a slice of string arguments and interprets them. If it finds
+// an unknown option or a missing mandatory argument, it returns an error.
 func (op *OptionParser) ParseFrom(args []string) error {
 	i := 1
 	for i < len(args) {
-		if isOption(args[i]) {
+		switch {
+		// Users can pass -- to mark the end of flag parsing. This
+		// check must come first since isOption will treat -- as
+		// a malformed option.
+		case args[i] == "--":
+			op.Extra = append(op.Extra, args[i+1:]...)
+			return nil
+		case isOption(args[i]):
 			ret := splitOn(args[i])
 
 			var option *allowedOptions
@@ -339,7 +346,6 @@ func (op *OptionParser) ParseFrom(args []string) error {
 				ret.param = args[i+1]
 				// delete this possible parameter from the args list
 				args = append(args[:i+1], args[i+2:]...)
-
 			}
 
 			if ret.param != "" {
@@ -363,7 +369,7 @@ func (op *OptionParser) ParseFrom(args []string) error {
 				}
 				set(option, ret.negate, "")
 			}
-		} else {
+		default:
 			// not an option, we push it onto the extra array
 			op.Extra = append(op.Extra, args[i])
 		}
@@ -372,8 +378,9 @@ func (op *OptionParser) ParseFrom(args []string) error {
 	return nil
 }
 
-// Parse takes the command line arguments as found in os.Args and interprets them. If it finds an unknown option
-// or a missing mandatory argument, it returns an error.
+// Parse takes the command line arguments as found in os.Args and interprets
+// them. If it finds an unknown option or a missing mandatory argument, it
+// returns an error.
 func (op *OptionParser) Parse() error {
 	return op.ParseFrom(os.Args)
 }
@@ -432,8 +439,8 @@ func (op *OptionParser) Help() {
 	}
 }
 
-// NewOptionParser initializes the OptionParser struct with sane settings for Banner,
-// Start and Stop and adds a "-h", "--help" option for convenience.
+// NewOptionParser initializes the OptionParser struct with sane settings for
+// Banner, Start and Stop and adds a "-h", "--help" option for convenience.
 func NewOptionParser() *OptionParser {
 	a := &OptionParser{}
 	a.Extra = []string{}
