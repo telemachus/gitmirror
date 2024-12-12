@@ -1,9 +1,6 @@
 # TODO
 
-+ Improve the json in the configuration file.  First, use a whole json document
-  rather than just an array.  (This will require me to put the `repos` array as
-  the value of a `repos` key.)  Second, add a `storage` key in order to let
-  users specify where they want the repos to be placed.
++ Switch configuration from json to toml.
 + Currently, I add `GIT_TERMINAL_PROMPT=0` to the environment of the git command
   that I call with `os.Exec`.  This works for me, but others may want git to
   prompt them for their username and password.  I should make this configurable,
