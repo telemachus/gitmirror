@@ -25,8 +25,12 @@ func (app *appEnv) repos() []Repo {
 		return nil
 	}
 
-	rs := make([]Repo, 0, 20)
-	err = json.Unmarshal(conf, &rs)
+	cfg := struct {
+		Repos []Repo `json:"repos"`
+	}{
+		Repos: make([]Repo, 0, 20),
+	}
+	err = json.Unmarshal(conf, &cfg)
 	if err != nil {
 		app.exitVal = exitFailure
 		fmt.Fprintf(os.Stderr, "%s %s: %s\n", app.cmd, app.subCmd, err)
@@ -34,7 +38,7 @@ func (app *appEnv) repos() []Repo {
 	}
 
 	// Every repository must have a URL and a directory name.
-	return slices.DeleteFunc(rs, func(r Repo) bool {
+	return slices.DeleteFunc(cfg.Repos, func(r Repo) bool {
 		return r.URL == "" || r.Name == ""
 	})
 }

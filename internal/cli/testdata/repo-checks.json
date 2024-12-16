@@ -1,10 +1,12 @@
-[
-	{
-		"url": "https://github.com/user/repo.git",
-		"name": ""
-	},
-	{
-		"url": "",
-		"name": "repo.git"
-	}
-]
+{
+    "repos": [
+        {
+            "name": "",
+            "url": "https://github.com/user/repo.git"
+        },
+        {
+            "name": "repo.git",
+            "url": ""
+        }
+    ]
+}
