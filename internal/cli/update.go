@@ -25,7 +25,12 @@ func (app *appEnv) update(rs []Repo) {
 	}
 	for range rs {
 		res := <-ch
-		res.publish(app.quiet)
+		switch app.quiet {
+		case true:
+			res.publishError()
+		default:
+			res.publish()
+		}
 	}
 }
 

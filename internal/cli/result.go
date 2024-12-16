@@ -10,15 +10,16 @@ type result struct {
 	isErr bool
 }
 
-func (r result) publish(quiet bool) {
+func (r result) publish() {
 	if r.isErr {
 		fmt.Fprintln(os.Stderr, r.msg)
 		return
 	}
-
-	if quiet {
-		return
-	}
-
 	fmt.Fprintln(os.Stdout, r.msg)
+}
+
+func (r result) publishError() {
+	if r.isErr {
+		fmt.Fprintln(os.Stderr, r.msg)
+	}
 }
