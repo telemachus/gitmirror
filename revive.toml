@@ -16,7 +16,7 @@ enableAllRules = true
   Disabled = true
 
 [rule.line-length-limit]
-  Arguments = [100]
+  Arguments = [110]
 
 [rule.unhandled-error]
   Arguments = ["fmt.Printf", "fmt.Fprintf", "fmt.Println", "fmt.Fprintln"]
