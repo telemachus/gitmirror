@@ -13,15 +13,16 @@ type Repo struct {
 	Name string
 }
 
-func (app *appEnv) repos() []Repo {
-	if app.noOp() {
+func (cmd *cmdEnv) repos() []Repo {
+	if cmd.noOp() {
 		return nil
 	}
 
-	conf, err := os.ReadFile(app.config)
+	conf, err := os.ReadFile(cmd.confFile)
 	if err != nil {
-		app.exitVal = exitFailure
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", app.cmd, app.subCmd, err)
+		cmd.exitValue = exitFailure
+		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd.name, err)
+
 		return nil
 	}
 
@@ -32,8 +33,9 @@ func (app *appEnv) repos() []Repo {
 	}
 	err = json.Unmarshal(conf, &cfg)
 	if err != nil {
-		app.exitVal = exitFailure
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", app.cmd, app.subCmd, err)
+		cmd.exitValue = exitFailure
+		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd.name, err)
+
 		return nil
 	}
 

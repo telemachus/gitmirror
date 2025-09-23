@@ -14,49 +14,48 @@ func makeRepos() []Repo {
 	}
 }
 
-func fakeAppEnv(config string) *appEnv {
-	return &appEnv{
-		cmd:     "test",
-		subCmd:  "testing",
-		config:  config,
-		exitVal: exitSuccess,
+func fakeCmdEnv(confFile string) *cmdEnv {
+	return &cmdEnv{
+		name:      "test",
+		confFile:  confFile,
+		exitValue: exitSuccess,
 	}
 }
 
 func TestGetReposSuccess(t *testing.T) {
 	expected := makeRepos()
-	config := "testdata/backups.json"
-	app := fakeAppEnv(config)
-	actual := app.repos()
+	confFile := "testdata/backups.json"
+	cmd := fakeCmdEnv(confFile)
+	actual := cmd.repos()
 
-	if app.exitVal != exitSuccess {
-		t.Fatal("test cannot finish since app.repos() failed")
+	if cmd.exitValue != exitSuccess {
+		t.Fatal("test cannot finish since cmd.repos() failed")
 	}
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("app.repos(%q) failure (-want +got)\n%s", config, diff)
+		t.Errorf("cmd.repos(%q) failure (-want +got)\n%s", confFile, diff)
 	}
 }
 
 func TestGetReposFailure(t *testing.T) {
-	app := fakeAppEnv("testdata/nope.json")
-	app.repos()
+	cmd := fakeCmdEnv("testdata/nope.json")
+	cmd.repos()
 
-	if app.exitVal != exitFailure {
-		t.Error("app.exitVal expected exitFailure; actual exitSuccess")
+	if cmd.exitValue != exitFailure {
+		t.Error("cmd.exitValue expected exitFailure; actual exitSuccess")
 	}
 }
 
 func TestRepoChecks(t *testing.T) {
-	config := "testdata/repo-checks.json"
-	app := fakeAppEnv(config)
-	actual := app.repos()
+	confFile := "testdata/repo-checks.json"
+	cmd := fakeCmdEnv(confFile)
+	actual := cmd.repos()
 
-	if app.exitVal != exitSuccess {
-		t.Fatal("test cannot finish since app.repos() failed")
+	if cmd.exitValue != exitSuccess {
+		t.Fatal("test cannot finish since cmd.repos() failed")
 	}
 
 	if len(actual) != 0 {
-		t.Errorf("app.repos(%q) expected len(repos) = 0; actual: %d", config, len(actual))
+		t.Errorf("cmd.repos(%q) expected len(repos) = 0; actual: %d", confFile, len(actual))
 	}
 }

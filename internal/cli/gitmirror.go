@@ -6,33 +6,43 @@ import (
 )
 
 const (
-	cmd         = "gitmirror"
-	cmdVersion  = "v0.9.5"
-	config      = ".gitmirror.json"
-	storage     = ".local/share/gitmirror"
+	cmdName     = "gitmirror"
+	cmdVersion  = "v0.10.0"
+	confFile    = ".gitmirror.json"
+	dataDir     = ".local/share/gitmirror"
 	exitSuccess = 0
 	exitFailure = 1
 )
 
 // Gitmirror runs a subcommand and returns success or failure to the shell.
 func Gitmirror(args []string) int {
-	app, err := appFrom(args)
+	cmd, err := cmdFrom(cmdName, cmdVersion, args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd, err)
-		return exitFailure
+		cmd.exitValue = exitFailure
+		fmt.Fprintln(os.Stderr, err)
 	}
 
-	switch app.subCmd {
-	case "update", "up":
-		subCmdUpdate(app)
-	case "clone":
-		subCmdClone(app)
-	case "sync":
-		subCmdSync(app)
-	default:
-		fmt.Fprintf(os.Stderr, "%s: unrecognized subcommand %q\n", app.cmd, app.subCmd)
-		app.exitVal = exitFailure
+	cmd.printHelpOrVersion()
+
+	repos := cmd.repos()
+	tasks := cmd.classify(repos)
+
+	cmd.processRepositories(tasks)
+
+	return cmd.exitValue
+}
+
+func (cmd *cmdEnv) processRepositories(tasks syncList) {
+	if cmd.noOp() {
+		return
 	}
 
-	return app.exitVal
+	reporter := NewConsoleReporter(cmd.quietWanted)
+
+	reporter.Start(fmt.Sprintf("%s: processing %d repositories...", cmd.name, len(tasks.toUpdate)+len(tasks.toClone)))
+
+	cmd.update(tasks.toUpdate)
+	cmd.clone(tasks.toClone)
+
+	reporter.Finish(cmd.results)
 }

@@ -1,25 +1,28 @@
 package cli
 
-import (
-	"fmt"
-	"os"
+type resultKind int
+
+const (
+	resultCloned resultKind = iota
+	resultUpdated
+	resultUpToDate
+	resultError
 )
 
 type result struct {
-	msg   string
-	isErr bool
+	repo string
+	kind resultKind
 }
 
-func (r result) publish() {
-	if r.isErr {
-		fmt.Fprintln(os.Stderr, r.msg)
-		return
-	}
-	fmt.Fprintln(os.Stdout, r.msg)
-}
-
-func (r result) publishError() {
-	if r.isErr {
-		fmt.Fprintln(os.Stderr, r.msg)
+func (cmd *cmdEnv) collectResult(res result) {
+	switch res.kind {
+	case resultCloned:
+		cmd.results.cloned = append(cmd.results.cloned, res.repo)
+	case resultUpdated:
+		cmd.results.updated = append(cmd.results.updated, res.repo)
+	case resultUpToDate:
+		cmd.results.upToDate = append(cmd.results.upToDate, res.repo)
+	case resultError:
+		cmd.results.errors = append(cmd.results.errors, res.repo)
 	}
 }

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,77 +8,59 @@ import (
 	"github.com/telemachus/gitmirror/internal/git"
 )
 
-func subCmdUpdate(app *appEnv) {
-	rs := app.repos()
-	app.update(rs)
-}
-
-func (app *appEnv) update(rs []Repo) {
-	if app.noOp() {
+func (cmd *cmdEnv) update(rs []Repo) {
+	if cmd.noOp() {
 		return
 	}
 
 	ch := make(chan result)
 	for _, r := range rs {
-		go app.updateOne(r, ch)
+		go cmd.updateOne(r, ch)
 	}
 	for range rs {
 		res := <-ch
-		switch app.quiet {
-		case true:
-			res.publishError()
-		default:
-			res.publish()
-		}
+		cmd.collectResult(res)
 	}
 }
 
-func (app *appEnv) updateOne(r Repo, ch chan<- result) {
-	rDir := filepath.Join(app.storage, r.Name)
-	fhBefore, err := git.NewFetchHead(filepath.Join(rDir, "FETCH_HEAD"))
-	if err != nil {
-		ch <- result{
-			isErr: true,
-			msg:   fmt.Sprintf("%s %s: %s: %s", app.cmd, app.subCmd, r.Name, err),
-		}
+func (cmd *cmdEnv) updateOne(r Repo, ch chan<- result) {
+	rDir := filepath.Join(cmd.dataDir, r.Name)
+
+	fhBefore, err := git.NewFetchHead(rDir)
+	// FETCH_HEAD will not exist before the first update. This is normal,
+	// not an error.
+	if err != nil && !os.IsNotExist(err) {
+		ch <- result{repo: r.Name, kind: resultError}
+
 		return
 	}
 
 	args := []string{"remote", "update"}
-	cmd := exec.Command("git", args...)
+	gitCmd := exec.Command("git", args...)
 	noGitPrompt := "GIT_TERMINAL_PROMPT=0"
 	env := append(os.Environ(), noGitPrompt)
-	cmd.Env = env
-	cmd.Dir = rDir
+	gitCmd.Env = env
+	gitCmd.Dir = rDir
 
-	err = cmd.Run()
+	err = gitCmd.Run()
 	if err != nil {
-		ch <- result{
-			isErr: true,
-			msg:   fmt.Sprintf("%s %s: %s: %s", app.cmd, app.subCmd, r.Name, err),
-		}
+		ch <- result{repo: r.Name, kind: resultError}
+
 		return
 	}
 
-	fhAfter, err := git.NewFetchHead(filepath.Join(rDir, "FETCH_HEAD"))
+	fhAfter, err := git.NewFetchHead(rDir)
 	if err != nil {
-		ch <- result{
-			isErr: true,
-			msg:   fmt.Sprintf("%s %s: %s: %s", app.cmd, app.subCmd, r.Name, err),
-		}
+		ch <- result{repo: r.Name, kind: resultError}
+
 		return
 	}
 
 	if fhBefore.Equals(fhAfter) {
-		ch <- result{
-			isErr: false,
-			msg:   fmt.Sprintf("%s: already up-to-date", r.Name),
-		}
+		ch <- result{repo: r.Name, kind: resultUpToDate}
+
 		return
 	}
 
-	ch <- result{
-		isErr: false,
-		msg:   fmt.Sprintf("%s: updated", r.Name),
-	}
+	ch <- result{repo: r.Name, kind: resultUpdated}
 }

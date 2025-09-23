@@ -6,19 +6,16 @@ fmt:
 	golangci-lint run --disable-all --no-config -Egofmt --fix
 	golangci-lint run --disable-all --no-config -Egofumpt --fix
 
-lint: fmt
-	staticcheck ./...
-	revive -config revive.toml -exclude internal/optionparser ./...
-	golangci-lint run
-
-golangci: fmt
-	golangci-lint run
-
 staticcheck: fmt
 	staticcheck ./...
 
 revive: fmt
-	revive -config revive.toml -exclude internal/optionparser ./...
+	revive -config revive.toml ./...
+
+golangci: fmt
+	golangci-lint run
+
+lint: fmt staticcheck revive golangci
 
 test:
 	go test -shuffle on github.com/telemachus/gitmirror/internal/cli
@@ -33,13 +30,13 @@ testr:
 	go test -race -shuffle on github.com/telemachus/gitmirror/internal/git
 
 build: lint testr
-	go build ./cmd/gitmirror
+	go build .
 
 install: build
-	go install ./cmd/gitmirror
+	go install .
 
 clean:
 	rm -f gitmirror
 	go clean -i -r -cache
 
-.PHONY: fmt lint build install test testv testr clean
+.PHONY: fmt statickcheck revive golangci lint build install test testv testr clean

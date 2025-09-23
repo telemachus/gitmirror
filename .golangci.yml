@@ -1,4 +1,8 @@
 linters-settings:
+  cyclop:
+    max-complexity: 10
+    package-average: 0.0
+    skip-tests: false
   copyloopvar:
     check-alias: true
   depguard:

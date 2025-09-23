@@ -8,5 +8,5 @@ import (
 )
 
 func main() {
-	os.Exit(cli.Gitmirror(os.Args))
+	os.Exit(cli.Gitmirror(os.Args[1:]))
 }
