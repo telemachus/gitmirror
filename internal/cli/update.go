@@ -13,11 +13,11 @@ func (cmd *cmdEnv) update(rs []Repo) {
 		return
 	}
 
-	ch := make(chan result)
+	ch := make(chan result, len(rs))
 	for _, r := range rs {
 		go cmd.updateOne(r, ch)
 	}
-	for range rs {
+	for range len(rs) {
 		res := <-ch
 		cmd.collectResult(res)
 	}

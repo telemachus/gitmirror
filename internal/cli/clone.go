@@ -19,11 +19,11 @@ func (cmd *cmdEnv) clone(rs []Repo) {
 		return
 	}
 
-	ch := make(chan result)
+	ch := make(chan result, len(rs))
 	for _, r := range rs {
 		go cmd.cloneOne(r, ch)
 	}
-	for range rs {
+	for range len(rs) {
 		res := <-ch
 		cmd.collectResult(res)
 	}
