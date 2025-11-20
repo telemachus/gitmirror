@@ -5,33 +5,27 @@ import (
 	"strings"
 )
 
-// ProgressReporter wraps a concrete reporter's Start and Finish methods.
-type ProgressReporter interface {
-	Start(banner string)
-	Finish(results *syncResults)
-}
-
-// ConsoleReporter outputs reports to a terminal.
-type ConsoleReporter struct {
+// consoleReporter outputs reports to a terminal.
+type consoleReporter struct {
 	spinner     *spinner
 	quietWanted bool
 }
 
-// NewConsoleReporter returns a ConsoleReporter.
-func NewConsoleReporter(quietWanted bool) *ConsoleReporter {
-	return &ConsoleReporter{quietWanted: quietWanted}
+// newConsoleReporter returns a ConsoleReporter.
+func newConsoleReporter(quietWanted bool) *consoleReporter {
+	return &consoleReporter{quietWanted: quietWanted}
 }
 
-// Start initiates reporting.
-func (r *ConsoleReporter) Start(banner string) {
+// start initiates reporting.
+func (r *consoleReporter) start(banner string) {
 	if !r.quietWanted {
 		r.spinner = newSpinner()
 		r.spinner.start(banner)
 	}
 }
 
-// Finish terminates reporting.
-func (r *ConsoleReporter) Finish(results *syncResults) {
+// finish terminates reporting.
+func (r *consoleReporter) finish(results *syncResults) {
 	if r.spinner != nil {
 		r.spinner.stop()
 	}
@@ -41,7 +35,7 @@ func (r *ConsoleReporter) Finish(results *syncResults) {
 	}
 }
 
-func (r *ConsoleReporter) printSummary(results *syncResults) {
+func (r *consoleReporter) printSummary(results *syncResults) {
 	if len(results.cloned) > 0 {
 		fmt.Printf("    cloned: %s\n", strings.Join(results.cloned, ", "))
 	}
@@ -59,7 +53,7 @@ func (r *ConsoleReporter) printSummary(results *syncResults) {
 		fmt.Printf("    already up-to-date: %s\n", strings.Join(results.upToDate, ", "))
 	}
 
-	if len(results.errors) > 0 {
-		fmt.Printf("    errors: %s\n", strings.Join(results.errors, ", "))
+	if len(results.failed) > 0 {
+		fmt.Printf("    failed: %s\n", strings.Join(results.failed, ", "))
 	}
 }

@@ -4,20 +4,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/telemachus/gitmirror/internal/git"
 )
 
 func (cmd *cmdEnv) update(rs []Repo) {
-	if cmd.noOp() {
-		return
-	}
-
 	ch := make(chan result, len(rs))
 	for _, r := range rs {
 		go cmd.updateOne(r, ch)
 	}
-	for range len(rs) {
+	for range rs {
 		res := <-ch
 		cmd.collectResult(res)
 	}
@@ -26,11 +20,11 @@ func (cmd *cmdEnv) update(rs []Repo) {
 func (cmd *cmdEnv) updateOne(r Repo, ch chan<- result) {
 	rDir := filepath.Join(cmd.dataDir, r.Name)
 
-	fhBefore, err := git.NewFetchHead(rDir)
+	fhBefore, err := newFetchHead(rDir)
 	// FETCH_HEAD will not exist before the first update. This is normal,
 	// not an error.
 	if err != nil && !os.IsNotExist(err) {
-		ch <- result{repo: r.Name, kind: resultError}
+		ch <- result{repo: r.Name, kind: resultFailed}
 
 		return
 	}
@@ -44,19 +38,19 @@ func (cmd *cmdEnv) updateOne(r Repo, ch chan<- result) {
 
 	err = gitCmd.Run()
 	if err != nil {
-		ch <- result{repo: r.Name, kind: resultError}
+		ch <- result{repo: r.Name, kind: resultFailed}
 
 		return
 	}
 
-	fhAfter, err := git.NewFetchHead(rDir)
+	fhAfter, err := newFetchHead(rDir)
 	if err != nil {
-		ch <- result{repo: r.Name, kind: resultError}
+		ch <- result{repo: r.Name, kind: resultFailed}
 
 		return
 	}
 
-	if fhBefore.Equals(fhAfter) {
+	if fhBefore.equals(fhAfter) {
 		ch <- result{repo: r.Name, kind: resultUpToDate}
 
 		return

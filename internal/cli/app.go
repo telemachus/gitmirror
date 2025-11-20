@@ -13,7 +13,7 @@ type syncResults struct {
 	cloned   []string
 	updated  []string
 	upToDate []string
-	errors   []string
+	failed   []string
 }
 
 type cmdEnv struct {
@@ -23,7 +23,6 @@ type cmdEnv struct {
 	confFile      string
 	homeDir       string
 	dataDir       string
-	exitValue     int
 	helpWanted    bool
 	quietWanted   bool
 	versionWanted bool
@@ -31,10 +30,9 @@ type cmdEnv struct {
 
 func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
 	cmd := &cmdEnv{
-		name:      name,
-		version:   version,
-		exitValue: exitSuccess,
-		results:   &syncResults{},
+		name:    name,
+		version: version,
+		results: &syncResults{},
 	}
 
 	og := opts.NewGroup(cmd.name)
@@ -45,12 +43,22 @@ func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
 	og.Bool(&cmd.versionWanted, "version")
 
 	if err := og.Parse(args); err != nil {
-		return cmd, fmt.Errorf("%s: %s\n%s", cmd.name, err, cmdUsage)
+		return cmd, fmt.Errorf("%s: %w\n%s", cmd.name, err, cmdUsage)
+	}
+
+	if cmd.helpWanted {
+		fmt.Println(cmdUsage)
+		return cmd, nil
+	}
+
+	if cmd.versionWanted {
+		fmt.Printf("%s: %s\n", cmd.name, cmd.version)
+		return cmd, nil
 	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return cmd, fmt.Errorf("%s: %s", cmd.name, err)
+		return cmd, fmt.Errorf("%s: %w", cmd.name, err)
 	}
 	cmd.homeDir = homeDir
 
@@ -60,20 +68,4 @@ func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
 	cmd.dataDir = filepath.Join(cmd.homeDir, dataDir)
 
 	return cmd, nil
-}
-
-func (cmd *cmdEnv) printHelpOrVersion() {
-	switch {
-	// Do not use cmd.noOp since that checks helpWanted and versionWanted.
-	case cmd.exitValue != exitSuccess:
-		return
-	case cmd.helpWanted:
-		fmt.Println(cmdUsage)
-	case cmd.versionWanted:
-		fmt.Printf("%s: %s\n", cmd.name, cmd.version)
-	}
-}
-
-func (cmd *cmdEnv) noOp() bool {
-	return cmd.exitValue != exitSuccess || cmd.helpWanted || cmd.versionWanted
 }

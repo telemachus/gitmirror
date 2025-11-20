@@ -6,7 +6,7 @@ const (
 	resultCloned resultKind = iota
 	resultUpdated
 	resultUpToDate
-	resultError
+	resultFailed
 )
 
 type result struct {
@@ -22,7 +22,7 @@ func (cmd *cmdEnv) collectResult(res result) {
 		cmd.results.updated = append(cmd.results.updated, res.repo)
 	case resultUpToDate:
 		cmd.results.upToDate = append(cmd.results.upToDate, res.repo)
-	case resultError:
-		cmd.results.errors = append(cmd.results.errors, res.repo)
+	case resultFailed:
+		cmd.results.failed = append(cmd.results.failed, res.repo)
 	}
 }

@@ -13,17 +13,10 @@ type Repo struct {
 	Name string
 }
 
-func (cmd *cmdEnv) repos() []Repo {
-	if cmd.noOp() {
-		return nil
-	}
-
+func (cmd *cmdEnv) repos() ([]Repo, error) {
 	conf, err := os.ReadFile(cmd.confFile)
 	if err != nil {
-		cmd.exitValue = exitFailure
-		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd.name, err)
-
-		return nil
+		return nil, fmt.Errorf("%s: %w", cmd.name, err)
 	}
 
 	cfg := struct {
@@ -33,14 +26,13 @@ func (cmd *cmdEnv) repos() []Repo {
 	}
 	err = json.Unmarshal(conf, &cfg)
 	if err != nil {
-		cmd.exitValue = exitFailure
-		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd.name, err)
-
-		return nil
+		return nil, fmt.Errorf("%s: %w", cmd.name, err)
 	}
 
 	// Every repository must have a URL and a directory name.
-	return slices.DeleteFunc(cfg.Repos, func(r Repo) bool {
+	repos := slices.DeleteFunc(cfg.Repos, func(r Repo) bool {
 		return r.URL == "" || r.Name == ""
 	})
+
+	return repos, nil
 }

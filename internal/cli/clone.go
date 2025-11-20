@@ -6,27 +6,22 @@ import (
 	"os/exec"
 )
 
-func (cmd *cmdEnv) clone(rs []Repo) {
-	if cmd.noOp() {
-		return
-	}
-
+func (cmd *cmdEnv) clone(rs []Repo) error {
 	err := os.MkdirAll(cmd.dataDir, os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", cmd.name, err)
-		cmd.exitValue = exitFailure
-
-		return
+		return fmt.Errorf("%s: %w", cmd.name, err)
 	}
 
 	ch := make(chan result, len(rs))
 	for _, r := range rs {
 		go cmd.cloneOne(r, ch)
 	}
-	for range len(rs) {
+	for range rs {
 		res := <-ch
 		cmd.collectResult(res)
 	}
+
+	return nil
 }
 
 func (cmd *cmdEnv) cloneOne(r Repo, ch chan<- result) {
@@ -39,8 +34,7 @@ func (cmd *cmdEnv) cloneOne(r Repo, ch chan<- result) {
 
 	err := gitCmd.Run()
 	if err != nil {
-		cmd.exitValue = exitFailure
-		ch <- result{repo: r.Name, kind: resultError}
+		ch <- result{repo: r.Name, kind: resultFailed}
 
 		return
 	}

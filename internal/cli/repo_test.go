@@ -16,20 +16,19 @@ func makeRepos() []Repo {
 
 func fakeCmdEnv(confFile string) *cmdEnv {
 	return &cmdEnv{
-		name:      "test",
-		confFile:  confFile,
-		exitValue: exitSuccess,
+		name:     "test",
+		confFile: confFile,
 	}
 }
 
 func TestGetReposSuccess(t *testing.T) {
+	t.Parallel()
 	expected := makeRepos()
 	confFile := "testdata/backups.json"
 	cmd := fakeCmdEnv(confFile)
-	actual := cmd.repos()
-
-	if cmd.exitValue != exitSuccess {
-		t.Fatal("test cannot finish since cmd.repos() failed")
+	actual, err := cmd.repos()
+	if err != nil {
+		t.Fatalf("test cannot finish since cmd.repos() failed: %v", err)
 	}
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -38,21 +37,22 @@ func TestGetReposSuccess(t *testing.T) {
 }
 
 func TestGetReposFailure(t *testing.T) {
+	t.Parallel()
 	cmd := fakeCmdEnv("testdata/nope.json")
-	cmd.repos()
+	_, err := cmd.repos()
 
-	if cmd.exitValue != exitFailure {
-		t.Error("cmd.exitValue expected exitFailure; actual exitSuccess")
+	if err == nil {
+		t.Error("expected error from cmd.repos(); got nil")
 	}
 }
 
 func TestRepoChecks(t *testing.T) {
+	t.Parallel()
 	confFile := "testdata/repo-checks.json"
 	cmd := fakeCmdEnv(confFile)
-	actual := cmd.repos()
-
-	if cmd.exitValue != exitSuccess {
-		t.Fatal("test cannot finish since cmd.repos() failed")
+	actual, err := cmd.repos()
+	if err != nil {
+		t.Fatalf("test cannot finish since cmd.repos() failed: %v", err)
 	}
 
 	if len(actual) != 0 {

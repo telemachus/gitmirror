@@ -1,26 +1,12 @@
-package git_test
+package cli
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/telemachus/gitmirror/internal/git"
 )
 
-// testFileReader implements git.FileReader for testing
-type testFileReader struct {
-	files map[string][]byte
-}
-
-func (t testFileReader) ReadFile(name string) ([]byte, error) {
-	if data, exists := t.files[name]; exists {
-		return data, nil
-	}
-
-	return nil, fmt.Errorf("file not found: %s", name)
-}
-
+//nolint:funlen // The test cases take up space.
 func TestFetchHeadEquality(t *testing.T) {
 	t.Parallel()
 
@@ -86,26 +72,38 @@ aae258c89dd2c7267a88d84fe4bf1a71df274e33	not-for-merge	branch 'main' of https://
 		t.Run(msg, func(t *testing.T) {
 			t.Parallel()
 
-			testFS := testFileReader{
-				files: map[string][]byte{
-					filepath.Join("repo1", "FETCH_HEAD"): tc.beforeContent,
-					filepath.Join("repo2", "FETCH_HEAD"): tc.afterContent,
-				},
+			tmpDir := t.TempDir()
+
+			repo1 := filepath.Join(tmpDir, "repo1")
+			repo2 := filepath.Join(tmpDir, "repo2")
+
+			if err := os.Mkdir(repo1, 0o755); err != nil {
+				t.Fatalf("failed to create repo1 directory: %v", err)
+			}
+			if err := os.Mkdir(repo2, 0o755); err != nil {
+				t.Fatalf("failed to create repo2 directory: %v", err)
 			}
 
-			fhBefore, err := git.NewFetchHeadWithReader("repo1", testFS)
+			if err := os.WriteFile(filepath.Join(repo1, "FETCH_HEAD"), tc.beforeContent, 0o644); err != nil {
+				t.Fatalf("failed to write FETCH_HEAD for repo1: %v", err)
+			}
+			if err := os.WriteFile(filepath.Join(repo2, "FETCH_HEAD"), tc.afterContent, 0o644); err != nil {
+				t.Fatalf("failed to write FETCH_HEAD for repo2: %v", err)
+			}
+
+			fhBefore, err := newFetchHead(repo1)
 			if err != nil {
-				t.Fatalf("git.NewFetchHeadWithReader(repo1) failed: %v", err)
+				t.Fatalf("newFetchHead(repo1) failed: %v", err)
 			}
 
-			fhAfter, err := git.NewFetchHeadWithReader("repo2", testFS)
+			fhAfter, err := newFetchHead(repo2)
 			if err != nil {
-				t.Fatalf("git.NewFetchHeadWithReader(repo2) failed: %v", err)
+				t.Fatalf("newFetchHead(repo2) failed: %v", err)
 			}
 
-			got := fhBefore.Equals(fhAfter)
+			got := fhBefore.equals(fhAfter)
 			if got != tc.expected {
-				t.Errorf("fhBefore.Equals(fhAfter) = %v; want %v", got, tc.expected)
+				t.Errorf("fhBefore.equals(fhAfter) = %v; want %v", got, tc.expected)
 			}
 		})
 	}

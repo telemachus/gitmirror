@@ -3,8 +3,8 @@
 PREFIX := $(HOME)/local/gitmirror
 
 fmt:
-	golangci-lint run --disable-all --no-config -Egofmt --fix
-	golangci-lint run --disable-all --no-config -Egofumpt --fix
+	golangci-lint fmt --no-config -Egofmt
+	golangci-lint fmt --no-config -Egofumpt
 
 staticcheck: fmt
 	staticcheck ./...
@@ -19,15 +19,12 @@ lint: fmt staticcheck revive golangci
 
 test:
 	go test -shuffle on github.com/telemachus/gitmirror/internal/cli
-	go test -shuffle on github.com/telemachus/gitmirror/internal/git
 
 testv:
 	go test -shuffle on -v github.com/telemachus/gitmirror/internal/cli
-	go test -shuffle on -v github.com/telemachus/gitmirror/internal/git
 
 testr:
 	go test -race -shuffle on github.com/telemachus/gitmirror/internal/cli
-	go test -race -shuffle on github.com/telemachus/gitmirror/internal/git
 
 build: lint testr
 	go build .

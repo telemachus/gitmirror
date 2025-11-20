@@ -14,35 +14,48 @@ const (
 	exitFailure = 1
 )
 
-// Gitmirror runs a subcommand and returns success or failure to the shell.
+// Gitmirror clones and updates repos and returns success or failure.
 func Gitmirror(args []string) int {
 	cmd, err := cmdFrom(cmdName, cmdVersion, args)
 	if err != nil {
-		cmd.exitValue = exitFailure
 		fmt.Fprintln(os.Stderr, err)
+		return exitFailure
 	}
 
-	cmd.printHelpOrVersion()
+	if cmd.helpWanted || cmd.versionWanted {
+		return exitSuccess
+	}
 
-	repos := cmd.repos()
+	repos, err := cmd.repos()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return exitFailure
+	}
+
 	tasks := cmd.classify(repos)
 
-	cmd.processRepositories(tasks)
-
-	return cmd.exitValue
-}
-
-func (cmd *cmdEnv) processRepositories(tasks syncList) {
-	if cmd.noOp() {
-		return
+	if err := cmd.processRepositories(tasks); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return exitFailure
 	}
 
-	reporter := NewConsoleReporter(cmd.quietWanted)
+	if len(cmd.results.failed) > 0 {
+		return exitFailure
+	}
 
-	reporter.Start(fmt.Sprintf("%s: processing %d repositories...", cmd.name, len(tasks.toUpdate)+len(tasks.toClone)))
+	return exitSuccess
+}
+
+func (cmd *cmdEnv) processRepositories(tasks syncList) error {
+	reporter := newConsoleReporter(cmd.quietWanted)
+
+	reporter.start(fmt.Sprintf("%s: processing %d repositories...", cmd.name, len(tasks.toUpdate)+len(tasks.toClone)))
+	defer reporter.finish(cmd.results)
 
 	cmd.update(tasks.toUpdate)
-	cmd.clone(tasks.toClone)
+	if err := cmd.clone(tasks.toClone); err != nil {
+		return err
+	}
 
-	reporter.Finish(cmd.results)
+	return nil
 }

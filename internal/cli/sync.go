@@ -11,10 +11,6 @@ type syncList struct {
 }
 
 func (cmd *cmdEnv) classify(repos []Repo) syncList {
-	if cmd.noOp() {
-		return syncList{}
-	}
-
 	toClone := make([]Repo, 0, len(repos))
 	toUpdate := make([]Repo, 0, len(repos))
 
