@@ -6,25 +6,48 @@ import (
 )
 
 const (
-	cmdName     = "gitmirror"
-	cmdVersion  = "v0.10.0"
-	confFile    = ".gitmirror.json"
-	dataDir     = ".local/share/gitmirror"
-	exitSuccess = 0
-	exitFailure = 1
+	cmdName          = "gitmirror"
+	cmdVersion       = "v0.10.0"
+	confFile         = ".gitmirror.json"
+	dataDir          = ".local/share/gitmirror"
+	exitSuccess      = 0
+	exitFailure      = 1
+	exitParseFailure = 2
 )
 
 // Gitmirror clones and updates repos, writing output to stdout and errors to
 // stderr, and returns success or failure.
 func Gitmirror(args []string, stdout, stderr io.Writer) int {
-	cmd, err := cmdFrom(cmdName, cmdVersion, args, stdout, stderr)
-	if err != nil {
-		fmt.Fprintln(stderr, err)
-		return exitFailure
+	cmd := &cmdEnv{
+		stdout:  stdout,
+		stderr:  stderr,
+		name:    cmdName,
+		version: cmdVersion,
+		results: &syncResults{},
+	}
+	if err := cmd.parse(args); err != nil {
+		fmt.Fprintf(cmd.stderr, "%s: %s\n", cmd.name, err)
+		fmt.Fprintf(cmd.stderr, "Use '%s --help' for more information.\n", cmd.name)
+
+		return exitParseFailure
 	}
 
-	if cmd.helpWanted || cmd.versionWanted {
+	// Help and version are not errors.
+	switch {
+	case cmd.helpWanted:
+		fmt.Fprintln(cmd.stdout, cmdUsage)
+
 		return exitSuccess
+	case cmd.versionWanted:
+		fmt.Fprintln(cmd.stdout, cmd.name, cmd.version)
+
+		return exitSuccess
+	}
+
+	if err := cmd.setPaths(); err != nil {
+		fmt.Fprintln(cmd.stderr, err)
+
+		return exitFailure
 	}
 
 	repos, err := cmd.repos()

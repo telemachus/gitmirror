@@ -31,15 +31,7 @@ type cmdEnv struct {
 	versionWanted bool
 }
 
-func cmdFrom(name, version string, args []string, stdout, stderr io.Writer) (*cmdEnv, error) {
-	cmd := &cmdEnv{
-		stdout:  stdout,
-		stderr:  stderr,
-		name:    name,
-		version: version,
-		results: &syncResults{},
-	}
-
+func (cmd *cmdEnv) parse(args []string) error {
 	og := opts.NewGroup(cmd.name)
 	og.StringZero(&cmd.confFile, "config")
 	og.Bool(&cmd.helpWanted, "help")
@@ -48,22 +40,17 @@ func cmdFrom(name, version string, args []string, stdout, stderr io.Writer) (*cm
 	og.Bool(&cmd.versionWanted, "version")
 
 	if err := og.ParseAll(args); err != nil {
-		return cmd, fmt.Errorf("%s: %w\n%s", cmd.name, err, cmdUsage)
+		return fmt.Errorf("argument parsing error: %w", err)
 	}
 
-	if cmd.helpWanted {
-		fmt.Fprintln(cmd.stdout, cmdUsage)
-		return cmd, nil
-	}
+	return nil
+}
 
-	if cmd.versionWanted {
-		fmt.Fprintf(cmd.stdout, "%s: %s\n", cmd.name, cmd.version)
-		return cmd, nil
-	}
-
+// setPaths sets the home, config, and data paths.
+func (cmd *cmdEnv) setPaths() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return cmd, fmt.Errorf("%s: %w", cmd.name, err)
+		return fmt.Errorf("%s: %w", cmd.name, err)
 	}
 	cmd.homeDir = homeDir
 
@@ -72,5 +59,5 @@ func cmdFrom(name, version string, args []string, stdout, stderr io.Writer) (*cm
 	}
 	cmd.dataDir = filepath.Join(cmd.homeDir, dataDir)
 
-	return cmd, nil
+	return nil
 }
