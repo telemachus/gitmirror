@@ -16,5 +16,5 @@ import (
 )
 
 func main() {
-	os.Exit(cli.Gitmirror(os.Args[1:]))
+	os.Exit(cli.Gitmirror(os.Args[1:], os.Stdout, os.Stderr))
 }

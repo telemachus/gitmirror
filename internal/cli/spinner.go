@@ -2,19 +2,22 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"sync"
 	"time"
 )
 
 type spinner struct {
+	w     io.Writer
 	done  chan struct{}
 	chars []rune
 	index int
 	once  sync.Once
 }
 
-func newSpinner() *spinner {
+func newSpinner(w io.Writer) *spinner {
 	return &spinner{
+		w:     w,
 		chars: []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'},
 		done:  make(chan struct{}),
 	}
@@ -23,7 +26,7 @@ func newSpinner() *spinner {
 func (s *spinner) start(banner string) {
 	go func() {
 		if banner != "" {
-			fmt.Println(banner)
+			fmt.Fprintln(s.w, banner)
 		}
 
 		for {
@@ -31,7 +34,7 @@ func (s *spinner) start(banner string) {
 			case <-s.done:
 				return
 			default:
-				fmt.Printf("    %c\r", s.chars[s.index])
+				fmt.Fprintf(s.w, "    %c\r", s.chars[s.index])
 				s.index = (s.index + 1) % len(s.chars)
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -44,6 +47,6 @@ func (s *spinner) stop() {
 		close(s.done)
 
 		// Clear spinner line.
-		fmt.Print("\r\033[K")
+		fmt.Fprint(s.w, "\r\033[K")
 	})
 }

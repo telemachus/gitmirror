@@ -2,24 +2,26 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
-// consoleReporter outputs reports to a terminal.
+// consoleReporter outputs reports to w, usually a terminal.
 type consoleReporter struct {
+	w           io.Writer
 	spinner     *spinner
 	quietWanted bool
 }
 
-// newConsoleReporter returns a ConsoleReporter.
-func newConsoleReporter(quietWanted bool) *consoleReporter {
-	return &consoleReporter{quietWanted: quietWanted}
+// newConsoleReporter returns a consoleReporter that writes to w.
+func newConsoleReporter(w io.Writer, quietWanted bool) *consoleReporter {
+	return &consoleReporter{w: w, quietWanted: quietWanted}
 }
 
 // start initiates reporting.
 func (r *consoleReporter) start(banner string) {
 	if !r.quietWanted {
-		r.spinner = newSpinner()
+		r.spinner = newSpinner(r.w)
 		r.spinner.start(banner)
 	}
 }
@@ -35,25 +37,25 @@ func (r *consoleReporter) finish(results *syncResults) {
 	}
 }
 
-func (*consoleReporter) printSummary(results *syncResults) {
+func (r *consoleReporter) printSummary(results *syncResults) {
 	if len(results.cloned) > 0 {
-		fmt.Printf("    cloned: %s\n", strings.Join(results.cloned, ", "))
+		fmt.Fprintf(r.w, "    cloned: %s\n", strings.Join(results.cloned, ", "))
 	}
 
 	if len(results.updated) > 0 {
-		fmt.Printf("    updated: %s\n", strings.Join(results.updated, ", "))
+		fmt.Fprintf(r.w, "    updated: %s\n", strings.Join(results.updated, ", "))
 	}
 
 	upToDateCount := len(results.upToDate)
 	switch {
 	case upToDateCount > 5:
 		partialUpdates := strings.Join(results.upToDate[:3], ", ")
-		fmt.Printf("    already up-to-date: %s, ... (%d total)\n", partialUpdates, upToDateCount)
+		fmt.Fprintf(r.w, "    already up-to-date: %s, ... (%d total)\n", partialUpdates, upToDateCount)
 	case upToDateCount > 0:
-		fmt.Printf("    already up-to-date: %s\n", strings.Join(results.upToDate, ", "))
+		fmt.Fprintf(r.w, "    already up-to-date: %s\n", strings.Join(results.upToDate, ", "))
 	}
 
 	if len(results.failed) > 0 {
-		fmt.Printf("    failed: %s\n", strings.Join(results.failed, ", "))
+		fmt.Fprintf(r.w, "    failed: %s\n", strings.Join(results.failed, ", "))
 	}
 }

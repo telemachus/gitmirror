@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
+	"io"
 )
 
 const (
@@ -14,11 +14,12 @@ const (
 	exitFailure = 1
 )
 
-// Gitmirror clones and updates repos and returns success or failure.
-func Gitmirror(args []string) int {
-	cmd, err := cmdFrom(cmdName, cmdVersion, args)
+// Gitmirror clones and updates repos, writing output to stdout and errors to
+// stderr, and returns success or failure.
+func Gitmirror(args []string, stdout, stderr io.Writer) int {
+	cmd, err := cmdFrom(cmdName, cmdVersion, args, stdout, stderr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(stderr, err)
 		return exitFailure
 	}
 
@@ -28,14 +29,14 @@ func Gitmirror(args []string) int {
 
 	repos, err := cmd.repos()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(cmd.stderr, err)
 		return exitFailure
 	}
 
 	tasks := cmd.classify(repos)
 
 	if err := cmd.processRepositories(tasks); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(cmd.stderr, err)
 		return exitFailure
 	}
 
@@ -47,7 +48,7 @@ func Gitmirror(args []string) int {
 }
 
 func (cmd *cmdEnv) processRepositories(tasks syncList) error {
-	reporter := newConsoleReporter(cmd.quietWanted)
+	reporter := newConsoleReporter(cmd.stdout, cmd.quietWanted)
 
 	reporter.start(fmt.Sprintf("%s: processing %d repositories...", cmd.name, len(tasks.toUpdate)+len(tasks.toClone)))
 	defer reporter.finish(cmd.results)

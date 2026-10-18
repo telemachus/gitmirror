@@ -3,6 +3,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -17,6 +18,8 @@ type syncResults struct {
 }
 
 type cmdEnv struct {
+	stdout        io.Writer
+	stderr        io.Writer
 	results       *syncResults
 	name          string
 	version       string
@@ -28,8 +31,10 @@ type cmdEnv struct {
 	versionWanted bool
 }
 
-func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
+func cmdFrom(name, version string, args []string, stdout, stderr io.Writer) (*cmdEnv, error) {
 	cmd := &cmdEnv{
+		stdout:  stdout,
+		stderr:  stderr,
 		name:    name,
 		version: version,
 		results: &syncResults{},
@@ -47,12 +52,12 @@ func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
 	}
 
 	if cmd.helpWanted {
-		fmt.Println(cmdUsage)
+		fmt.Fprintln(cmd.stdout, cmdUsage)
 		return cmd, nil
 	}
 
 	if cmd.versionWanted {
-		fmt.Printf("%s: %s\n", cmd.name, cmd.version)
+		fmt.Fprintf(cmd.stdout, "%s: %s\n", cmd.name, cmd.version)
 		return cmd, nil
 	}
 
