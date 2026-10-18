@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,14 +19,14 @@ func (cmd *cmdEnv) update(rs []Repo) {
 	}
 }
 
-func (cmd *cmdEnv) updateOne(r Repo, ch chan<- result) {
-	rDir := filepath.Join(cmd.dataDir, r.Name)
+func (cmd *cmdEnv) updateOne(repo Repo, ch chan<- result) {
+	repoDir := filepath.Join(cmd.dataDir, repo.Name)
 
-	fhBefore, err := newFetchHead(rDir)
+	fhBefore, err := newFetchHead(repoDir)
 	// FETCH_HEAD will not exist before the first update. This is normal,
 	// not an error.
-	if err != nil && !os.IsNotExist(err) {
-		ch <- result{repo: r.Name, kind: resultFailed}
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		ch <- result{repo: repo.Name, kind: resultFailed}
 
 		return
 	}
@@ -34,27 +36,27 @@ func (cmd *cmdEnv) updateOne(r Repo, ch chan<- result) {
 	noGitPrompt := "GIT_TERMINAL_PROMPT=0"
 	env := append(os.Environ(), noGitPrompt)
 	gitCmd.Env = env
-	gitCmd.Dir = rDir
+	gitCmd.Dir = repoDir
 
 	err = gitCmd.Run()
 	if err != nil {
-		ch <- result{repo: r.Name, kind: resultFailed}
+		ch <- result{repo: repo.Name, kind: resultFailed}
 
 		return
 	}
 
-	fhAfter, err := newFetchHead(rDir)
+	fhAfter, err := newFetchHead(repoDir)
 	if err != nil {
-		ch <- result{repo: r.Name, kind: resultFailed}
+		ch <- result{repo: repo.Name, kind: resultFailed}
 
 		return
 	}
 
 	if fhBefore.equals(fhAfter) {
-		ch <- result{repo: r.Name, kind: resultUpToDate}
+		ch <- result{repo: repo.Name, kind: resultUpToDate}
 
 		return
 	}
 
-	ch <- result{repo: r.Name, kind: resultUpdated}
+	ch <- result{repo: repo.Name, kind: resultUpdated}
 }

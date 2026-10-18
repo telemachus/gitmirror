@@ -1,39 +1,42 @@
 .DEFAULT_GOAL := test
 
-PREFIX := $(HOME)/local/gitmirror
-
 fmt:
-	golangci-lint fmt --no-config -Egofmt
 	golangci-lint fmt --no-config -Egofumpt
 
-staticcheck: fmt
+staticcheck:
 	staticcheck ./...
 
-revive: fmt
+revive:
 	revive -config revive.toml ./...
 
-golangci: fmt
+golangci:
 	golangci-lint run
 
-lint: fmt staticcheck revive golangci
+lint: staticcheck revive golangci
+
+vuln:
+	govulncheck ./...
 
 test:
-	go test -shuffle on github.com/telemachus/gitmirror/internal/cli
+	go test -shuffle on ./...
 
 testv:
-	go test -shuffle on -v github.com/telemachus/gitmirror/internal/cli
+	go test -shuffle on -v ./...
 
 testr:
-	go test -race -shuffle on github.com/telemachus/gitmirror/internal/cli
+	go test -race -shuffle on ./...
 
 build: lint testr
-	go build .
+	go build ./cmd/gitmirror
 
 install: build
-	go install .
+	go install ./cmd/gitmirror
 
 clean:
 	rm -f gitmirror
-	go clean -i -r -cache
 
-.PHONY: fmt statickcheck revive golangci lint build install test testv testr clean
+cacheclean:
+	go clean -testcache
+
+.PHONY: fmt staticcheck revive golangci lint vuln
+.PHONY: test testv testr build install clean cacheclean

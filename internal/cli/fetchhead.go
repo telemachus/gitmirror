@@ -15,7 +15,7 @@ func newFetchHead(repo string) (fetchHead, error) {
 	fetchHeadPath := filepath.Join(repo, "FETCH_HEAD")
 	fh, err := os.ReadFile(fetchHeadPath)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck // The *os.PathError names the file.
 	}
 
 	return fetchHead(fh), nil

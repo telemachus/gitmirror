@@ -24,8 +24,8 @@ func (cmd *cmdEnv) clone(rs []Repo) error {
 	return nil
 }
 
-func (cmd *cmdEnv) cloneOne(r Repo, ch chan<- result) {
-	args := []string{"clone", "--mirror", r.URL, r.Name}
+func (cmd *cmdEnv) cloneOne(repo Repo, ch chan<- result) {
+	args := []string{"clone", "--mirror", repo.URL, repo.Name}
 	gitCmd := exec.Command("git", args...)
 	noGitPrompt := "GIT_TERMINAL_PROMPT=0"
 	env := append(os.Environ(), noGitPrompt)
@@ -34,10 +34,10 @@ func (cmd *cmdEnv) cloneOne(r Repo, ch chan<- result) {
 
 	err := gitCmd.Run()
 	if err != nil {
-		ch <- result{repo: r.Name, kind: resultFailed}
+		ch <- result{repo: repo.Name, kind: resultFailed}
 
 		return
 	}
 
-	ch <- result{repo: r.Name, kind: resultCloned}
+	ch <- result{repo: repo.Name, kind: resultCloned}
 }

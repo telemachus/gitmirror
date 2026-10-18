@@ -35,7 +35,7 @@ func (r *consoleReporter) finish(results *syncResults) {
 	}
 }
 
-func (r *consoleReporter) printSummary(results *syncResults) {
+func (*consoleReporter) printSummary(results *syncResults) {
 	if len(results.cloned) > 0 {
 		fmt.Printf("    cloned: %s\n", strings.Join(results.cloned, ", "))
 	}

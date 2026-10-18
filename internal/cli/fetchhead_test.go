@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-//nolint:funlen // The test cases take up space.
 func TestFetchHeadEquality(t *testing.T) {
 	t.Parallel()
 
@@ -72,34 +71,8 @@ aae258c89dd2c7267a88d84fe4bf1a71df274e33	not-for-merge	branch 'main' of https://
 		t.Run(msg, func(t *testing.T) {
 			t.Parallel()
 
-			tmpDir := t.TempDir()
-
-			repo1 := filepath.Join(tmpDir, "repo1")
-			repo2 := filepath.Join(tmpDir, "repo2")
-
-			if err := os.Mkdir(repo1, 0o755); err != nil {
-				t.Fatalf("failed to create repo1 directory: %v", err)
-			}
-			if err := os.Mkdir(repo2, 0o755); err != nil {
-				t.Fatalf("failed to create repo2 directory: %v", err)
-			}
-
-			if err := os.WriteFile(filepath.Join(repo1, "FETCH_HEAD"), tc.beforeContent, 0o644); err != nil {
-				t.Fatalf("failed to write FETCH_HEAD for repo1: %v", err)
-			}
-			if err := os.WriteFile(filepath.Join(repo2, "FETCH_HEAD"), tc.afterContent, 0o644); err != nil {
-				t.Fatalf("failed to write FETCH_HEAD for repo2: %v", err)
-			}
-
-			fhBefore, err := newFetchHead(repo1)
-			if err != nil {
-				t.Fatalf("newFetchHead(repo1) failed: %v", err)
-			}
-
-			fhAfter, err := newFetchHead(repo2)
-			if err != nil {
-				t.Fatalf("newFetchHead(repo2) failed: %v", err)
-			}
+			fhBefore := newTestFetchHead(t, tc.beforeContent)
+			fhAfter := newTestFetchHead(t, tc.afterContent)
 
 			got := fhBefore.equals(fhAfter)
 			if got != tc.expected {
@@ -107,4 +80,22 @@ aae258c89dd2c7267a88d84fe4bf1a71df274e33	not-for-merge	branch 'main' of https://
 			}
 		})
 	}
+}
+
+// newTestFetchHead writes content as FETCH_HEAD in a new temporary directory
+// and returns the fetchHead that newFetchHead reads from it.
+func newTestFetchHead(t *testing.T, content []byte) fetchHead {
+	t.Helper()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "FETCH_HEAD"), content, 0o644); err != nil {
+		t.Fatalf("failed to write FETCH_HEAD: %v", err)
+	}
+
+	fh, err := newFetchHead(dir)
+	if err != nil {
+		t.Fatalf("newFetchHead(%s) failed: %v", dir, err)
+	}
+
+	return fh
 }

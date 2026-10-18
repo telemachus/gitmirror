@@ -53,9 +53,6 @@ func (cmd *cmdEnv) processRepositories(tasks syncList) error {
 	defer reporter.finish(cmd.results)
 
 	cmd.update(tasks.toUpdate)
-	if err := cmd.clone(tasks.toClone); err != nil {
-		return err
-	}
 
-	return nil
+	return cmd.clone(tasks.toClone)
 }

@@ -42,7 +42,7 @@ func cmdFrom(name, version string, args []string) (*cmdEnv, error) {
 	og.Bool(&cmd.quietWanted, "quiet")
 	og.Bool(&cmd.versionWanted, "version")
 
-	if err := og.Parse(args); err != nil {
+	if err := og.ParseAll(args); err != nil {
 		return cmd, fmt.Errorf("%s: %w\n%s", cmd.name, err, cmdUsage)
 	}
 
